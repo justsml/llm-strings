@@ -1,12 +1,12 @@
-import type { LlmConnectionConfig } from "./index.js";
+import type { LlmConnectionConfig } from "./parse.js";
 import {
   ALIASES,
   CACHE_TTLS,
   CACHE_VALUES,
   DURATION_RE,
   PROVIDER_PARAMS,
+  bedrockSupportsCaching,
   canHostOpenAIModels,
-  detectBedrockModelFamily,
   detectProvider,
   isReasoningModel,
   type Provider,
@@ -69,10 +69,9 @@ export function normalize(
     if (key === "cache" && provider) {
       let cacheValue = CACHE_VALUES[provider];
 
-      // Bedrock only supports cache for Anthropic Claude models
-      if (provider === "bedrock") {
-        const family = detectBedrockModelFamily(config.model);
-        if (family !== "anthropic") cacheValue = undefined;
+      // Bedrock supports cache for Anthropic Claude and Amazon Nova models
+      if (provider === "bedrock" && !bedrockSupportsCaching(config.model)) {
+        cacheValue = undefined;
       }
 
       // Provider/model doesn't support cache — drop it

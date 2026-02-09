@@ -123,6 +123,8 @@ export const PROVIDER_PARAMS: Record<Provider, Record<string, string>> = {
     n: "candidateCount",
     stream: "stream",
     seed: "seed",
+    responseMimeType: "responseMimeType",
+    responseSchema: "responseSchema",
   },
   mistral: {
     temperature: "temperature",
@@ -134,6 +136,8 @@ export const PROVIDER_PARAMS: Record<Provider, Record<string, string>> = {
     n: "n",
     seed: "random_seed",
     stream: "stream",
+    safe_prompt: "safe_prompt",
+    min_tokens: "min_tokens",
   },
   cohere: {
     temperature: "temperature",
@@ -235,6 +239,8 @@ export const PARAM_SPECS: Record<Provider, Record<string, ParamSpec>> = {
     candidateCount: { type: "number", min: 1 },
     stream: { type: "boolean" },
     seed: { type: "number" },
+    responseMimeType: { type: "string" },
+    responseSchema: { type: "string" },
   },
   mistral: {
     temperature: { type: "number", min: 0, max: 1 },
@@ -246,6 +252,8 @@ export const PARAM_SPECS: Record<Provider, Record<string, ParamSpec>> = {
     n: { type: "number", min: 1 },
     random_seed: { type: "number" },
     stream: { type: "boolean" },
+    safe_prompt: { type: "boolean" },
+    min_tokens: { type: "number", min: 0 },
   },
   cohere: {
     temperature: { type: "number", min: 0, max: 1 },
@@ -340,7 +348,16 @@ export type BedrockModelFamily =
 export function detectBedrockModelFamily(
   model: string,
 ): BedrockModelFamily | undefined {
-  const prefix = model.split(".")[0];
+  // Handle cross-region inference profiles (e.g. "us.anthropic.claude-3-5-sonnet...")
+  // and global inference profiles (e.g. "global.anthropic.claude-3-5-sonnet...")
+  const parts = model.split(".");
+  
+  // If first part is a region prefix (us, eu, apac) or global, skip it
+  let prefix = parts[0];
+  if (["us", "eu", "apac", "global"].includes(prefix) && parts.length > 1) {
+    prefix = parts[1];
+  }
+
   const families: BedrockModelFamily[] = [
     "anthropic",
     "meta",
@@ -350,6 +367,14 @@ export function detectBedrockModelFamily(
     "ai21",
   ];
   return families.find((f) => prefix === f);
+}
+
+/** Whether a Bedrock model supports prompt caching (Claude and Nova only). */
+export function bedrockSupportsCaching(model: string): boolean {
+  const family = detectBedrockModelFamily(model);
+  if (family === "anthropic") return true;
+  if (family === "amazon" && model.includes("nova")) return true;
+  return false;
 }
 
 /** Cache value normalization per provider. */

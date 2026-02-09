@@ -1,5 +1,5 @@
 {
-  "name": "llm-connection-strings",
+  "name": "llm-strings",
   "version": "0.0.1",
   "description": "Parse and build LLM connection strings \u2014 like database URLs, but for LLM APIs",
   "type": "module",

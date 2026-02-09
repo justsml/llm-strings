@@ -1,8 +1,10 @@
-import type { LlmConnectionConfig } from "./index.js";
+import { parse } from "./parse.js";
+import { normalize } from "./normalize.js";
 import {
   PARAM_SPECS,
   PROVIDER_PARAMS,
   REASONING_MODEL_UNSUPPORTED,
+  bedrockSupportsCaching,
   canHostOpenAIModels,
   detectBedrockModelFamily,
   detectProvider,
@@ -17,12 +19,14 @@ export interface ValidationIssue {
 }
 
 /**
- * Validate params in a (preferably already-normalized) config.
+ * Validate an LLM connection string.
  *
+ * Parses and normalizes the string, then checks params against provider specs.
  * Returns a list of issues found. An empty array means all params look valid.
- * Call `normalize()` first to expand aliases and map to provider-specific names.
  */
-export function validate(config: LlmConnectionConfig): ValidationIssue[] {
+export function validate(connectionString: string): ValidationIssue[] {
+  const parsed = parse(connectionString);
+  const { config } = normalize(parsed);
   const provider = detectProvider(config.host);
   const issues: ValidationIssue[] = [];
 
@@ -59,8 +63,14 @@ export function validate(config: LlmConnectionConfig): ValidationIssue[] {
     if (provider === "bedrock") {
       const family = detectBedrockModelFamily(config.model);
 
-      // topK is only supported by Claude and Cohere on Bedrock
-      if (key === "topK" && family && family !== "anthropic" && family !== "cohere") {
+      // topK is only supported by Claude, Cohere, and Mistral on Bedrock
+      if (
+        key === "topK" &&
+        family &&
+        family !== "anthropic" &&
+        family !== "cohere" &&
+        family !== "mistral"
+      ) {
         issues.push({
           param: key,
           value,
@@ -70,12 +80,12 @@ export function validate(config: LlmConnectionConfig): ValidationIssue[] {
         continue;
       }
 
-      // cache_control is only supported by Claude on Bedrock
-      if (key === "cache_control" && family !== "anthropic") {
+      // cache_control is only supported by Claude and Nova on Bedrock
+      if (key === "cache_control" && !bedrockSupportsCaching(config.model)) {
         issues.push({
           param: key,
           value,
-          message: `Prompt caching is only supported for Anthropic Claude models on Bedrock, not ${family ?? "unknown"} models.`,
+          message: `Prompt caching is only supported for Anthropic Claude and Amazon Nova models on Bedrock, not ${family ?? "unknown"} models.`,
           severity: "error",
         });
         continue;
@@ -96,6 +106,30 @@ export function validate(config: LlmConnectionConfig): ValidationIssue[] {
     // Validate against spec
     const spec = specs[key];
     if (!spec) continue;
+
+    // Anthropic (and Bedrock Claude) mutual exclusion for temperature/top_p
+    if (
+      (provider === "anthropic" ||
+        (provider === "bedrock" &&
+          detectBedrockModelFamily(config.model) === "anthropic")) &&
+      (key === "temperature" || key === "top_p" || key === "topP")
+    ) {
+      const otherKey =
+        key === "temperature"
+          ? provider === "bedrock"
+            ? "topP"
+            : "top_p"
+          : "temperature";
+      // Only report error once (on the temperature param) to avoid duplicate errors
+      if (key === "temperature" && config.params[otherKey] !== undefined) {
+        issues.push({
+          param: key,
+          value,
+          message: `Cannot specify both "temperature" and "${otherKey}" for Anthropic models.`,
+          severity: "error",
+        });
+      }
+    }
 
     if (spec.type === "number") {
       const num = Number(value);
