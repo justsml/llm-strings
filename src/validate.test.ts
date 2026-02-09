@@ -95,7 +95,7 @@ describe("validate", () => {
     it("flags invalid effort value for OpenAI", () => {
       const issues = check("llm://api.openai.com/o3?effort=extreme");
       expect(issues).toHaveLength(1);
-      expect(issues[0].message).toContain("low, medium, high");
+      expect(issues[0].message).toContain("xhigh");
     });
 
     it("flags invalid effort value for Anthropic", () => {
@@ -143,6 +143,95 @@ describe("validate", () => {
       expect(
         issues.filter((i) => i.severity === "error"),
       ).toEqual([]);
+    });
+  });
+
+  describe("AWS Bedrock", () => {
+    it("validates valid Bedrock Claude params", () => {
+      const issues = check(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?temp=0.7&max=4096",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("validates valid Bedrock Titan params", () => {
+      const issues = check(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/amazon.titan-text-express-v1?temp=0.5&max=500",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("flags topK on non-Claude/Cohere Bedrock models", () => {
+      const issues = check(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/meta.llama3-2-90b-instruct-v1:0?topk=40",
+      );
+      expect(issues).toHaveLength(1);
+      expect(issues[0].severity).toBe("error");
+      expect(issues[0].message).toContain("meta");
+    });
+
+    it("allows topK on Claude Bedrock models", () => {
+      const issues = check(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?topk=40",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("flags cache_control on non-Claude Bedrock models", () => {
+      const issues = check(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/amazon.titan-text-express-v1?cache=true",
+      );
+      // cache gets dropped in normalize for non-Claude, so nothing to validate
+      expect(issues).toEqual([]);
+    });
+
+    it("flags temperature > 1 for Bedrock", () => {
+      const issues = check(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?temp=1.5",
+      );
+      expect(issues).toHaveLength(1);
+      expect(issues[0].message).toContain("<= 1");
+    });
+  });
+
+  describe("OpenRouter", () => {
+    it("detects and validates OpenRouter params", () => {
+      const issues = check(
+        "llm://openrouter.ai/anthropic/claude-3.5-sonnet?temp=0.7&max=2000",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("accepts top_k on OpenRouter (multi-provider)", () => {
+      const issues = check(
+        "llm://openrouter.ai/anthropic/claude-3.5-sonnet?top_k=40",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("flags temperature > 2 on OpenRouter", () => {
+      const issues = check(
+        "llm://openrouter.ai/openai/gpt-4o?temp=3.0",
+      );
+      expect(issues).toHaveLength(1);
+      expect(issues[0].message).toContain("<= 2");
+    });
+  });
+
+  describe("Vercel AI Gateway", () => {
+    it("detects and validates Vercel gateway params", () => {
+      const issues = check(
+        "llm://gateway.ai.vercel.sh/openai/gpt-4o?temp=0.7&max=1500",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("flags invalid param types on Vercel", () => {
+      const issues = check(
+        "llm://gateway.ai.vercel.sh/anthropic/claude-3.5-sonnet?temp=hot",
+      );
+      expect(issues).toHaveLength(1);
+      expect(issues[0].message).toContain("number");
     });
   });
 

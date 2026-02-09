@@ -3,6 +3,7 @@ import {
   ALIASES,
   CACHE_VALUES,
   PROVIDER_PARAMS,
+  detectBedrockModelFamily,
   detectProvider,
   isReasoningModel,
   type Provider,
@@ -63,7 +64,14 @@ export function normalize(
 
     // Step 2: Handle special "cache" param
     if (key === "cache" && provider) {
-      const cacheValue = CACHE_VALUES[provider];
+      let cacheValue = CACHE_VALUES[provider];
+
+      // Bedrock only supports cache for Anthropic Claude models
+      if (provider === "bedrock") {
+        const family = detectBedrockModelFamily(config.model);
+        if (family !== "anthropic") cacheValue = undefined;
+      }
+
       if (
         cacheValue &&
         (value === "true" || value === "1" || value === "yes")
@@ -81,14 +89,14 @@ export function normalize(
         params[providerKey] = cacheValue;
         continue;
       }
-      // Provider doesn't support cache param — drop it with a note
+      // Provider/model doesn't support cache param — drop it with a note
       if (!cacheValue) {
         if (options.verbose) {
           changes.push({
             from: "cache",
             to: "(dropped)",
             value,
-            reason: `${provider} does not use a cache param (caching is automatic or API-level)`,
+            reason: `${provider} does not use a cache param for this model (caching is automatic or unsupported)`,
           });
         }
         continue;

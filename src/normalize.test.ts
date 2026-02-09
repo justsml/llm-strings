@@ -89,6 +89,13 @@ describe("normalize", () => {
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ effort: "high" });
     });
+    it("resolves reasoning_effort as effort for Anthropic", () => {
+      const config = parse(
+        "llm://api.anthropic.com/claude-opus-4-6?reasoning_effort=high",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ effort: "high" });
+    });
   });
 
   describe("cache normalization", () => {
@@ -121,6 +128,121 @@ describe("normalize", () => {
     });
   });
 
+  describe("AWS Bedrock", () => {
+    it("detects bedrock from amazonaws.com host", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0",
+      );
+      expect(normalize(config).provider).toBe("bedrock");
+    });
+
+    it("maps max_tokens → maxTokens for Bedrock Converse API", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?max=4096",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ maxTokens: "4096" });
+    });
+
+    it("maps top_p → topP and stop → stopSequences", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-west-2.amazonaws.com/meta.llama3-2-90b-instruct-v1:0?top_p=0.9&stop=END",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ topP: "0.9", stopSequences: "END" });
+    });
+
+    it("maps top_k → topK for Claude on Bedrock", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?topk=40",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ topK: "40" });
+    });
+
+    it("maps cache=true → cache_control=ephemeral for Claude on Bedrock", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?cache=true",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ cache_control: "ephemeral" });
+    });
+
+    it("drops cache for non-Claude models on Bedrock", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/meta.llama3-2-90b-instruct-v1:0?cache=true",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({});
+    });
+
+    it("normalizes a full Bedrock connection string", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/amazon.titan-text-express-v1?temp=0.5&max=500&top_p=0.9",
+      );
+      const { config: result, provider } = normalize(config);
+      expect(provider).toBe("bedrock");
+      expect(result.params).toEqual({
+        temperature: "0.5",
+        maxTokens: "500",
+        topP: "0.9",
+      });
+    });
+  });
+
+  describe("OpenRouter", () => {
+    it("detects openrouter and uses OpenAI-compatible params", () => {
+      const config = parse(
+        "llm://openrouter.ai/anthropic/claude-3.5-sonnet?temp=0.7&max=2000",
+      );
+      const { config: result, provider } = normalize(config);
+      expect(provider).toBe("openrouter");
+      expect(result.params).toEqual({
+        temperature: "0.7",
+        max_tokens: "2000",
+      });
+    });
+
+    it("maps effort → reasoning_effort", () => {
+      const config = parse(
+        "llm://openrouter.ai/openai/o3?effort=high",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ reasoning_effort: "high" });
+    });
+
+    it("drops cache for OpenRouter (no explicit caching)", () => {
+      const config = parse(
+        "llm://openrouter.ai/anthropic/claude-3.5-sonnet?cache=true",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({});
+    });
+  });
+
+  describe("Vercel AI Gateway", () => {
+    it("detects vercel and uses OpenAI-compatible params", () => {
+      const config = parse(
+        "llm://gateway.ai.vercel.sh/openai/gpt-4o?temp=0.7&max=1500&top_p=0.9",
+      );
+      const { config: result, provider } = normalize(config);
+      expect(provider).toBe("vercel");
+      expect(result.params).toEqual({
+        temperature: "0.7",
+        max_tokens: "1500",
+        top_p: "0.9",
+      });
+    });
+
+    it("keeps top_k as top_k (gateway supports multi-provider)", () => {
+      const config = parse(
+        "llm://gateway.ai.vercel.sh/anthropic/claude-3.5-sonnet?topk=40",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ top_k: "40" });
+    });
+  });
+
   describe("provider detection", () => {
     it("detects openai", () => {
       const config = parse("llm://api.openai.com/gpt-4o");
@@ -147,6 +269,27 @@ describe("normalize", () => {
     it("detects cohere", () => {
       const config = parse("llm://api.cohere.com/command-r-plus");
       expect(normalize(config).provider).toBe("cohere");
+    });
+
+    it("detects bedrock", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0",
+      );
+      expect(normalize(config).provider).toBe("bedrock");
+    });
+
+    it("detects openrouter", () => {
+      const config = parse(
+        "llm://openrouter.ai/anthropic/claude-3.5-sonnet",
+      );
+      expect(normalize(config).provider).toBe("openrouter");
+    });
+
+    it("detects vercel", () => {
+      const config = parse(
+        "llm://gateway.ai.vercel.sh/openai/gpt-4o",
+      );
+      expect(normalize(config).provider).toBe("vercel");
     });
 
     it("returns undefined for unknown host", () => {

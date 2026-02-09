@@ -3,9 +3,17 @@ export type Provider =
   | "anthropic"
   | "google"
   | "mistral"
-  | "cohere";
+  | "cohere"
+  | "bedrock"
+  | "openrouter"
+  | "vercel";
 
 export function detectProvider(host: string): Provider | undefined {
+  // Gateways and aggregators first — they proxy to other providers
+  if (host.includes("openrouter")) return "openrouter";
+  if (host.includes("gateway.ai.vercel")) return "vercel";
+  // Bedrock before native providers since it hosts models from multiple vendors
+  if (host.includes("amazonaws") || host.includes("bedrock")) return "bedrock";
   if (host.includes("openai")) return "openai";
   if (host.includes("anthropic") || host.includes("claude")) return "anthropic";
   if (host.includes("googleapis") || host.includes("google")) return "google";
@@ -137,6 +145,44 @@ export const PROVIDER_PARAMS: Record<Provider, Record<string, string>> = {
     stream: "stream",
     seed: "seed",
   },
+  bedrock: {
+    // Bedrock Converse API uses camelCase
+    temperature: "temperature",
+    max_tokens: "maxTokens",
+    top_p: "topP",
+    top_k: "topK", // Claude models via additionalModelRequestFields
+    stop: "stopSequences",
+    stream: "stream",
+    cache: "cache_control",
+  },
+  openrouter: {
+    // OpenAI-compatible API with extra routing params
+    temperature: "temperature",
+    max_tokens: "max_tokens",
+    top_p: "top_p",
+    top_k: "top_k",
+    frequency_penalty: "frequency_penalty",
+    presence_penalty: "presence_penalty",
+    stop: "stop",
+    n: "n",
+    seed: "seed",
+    stream: "stream",
+    effort: "reasoning_effort",
+  },
+  vercel: {
+    // OpenAI-compatible gateway
+    temperature: "temperature",
+    max_tokens: "max_tokens",
+    top_p: "top_p",
+    top_k: "top_k",
+    frequency_penalty: "frequency_penalty",
+    presence_penalty: "presence_penalty",
+    stop: "stop",
+    n: "n",
+    seed: "seed",
+    stream: "stream",
+    effort: "reasoning_effort",
+  },
 };
 
 /**
@@ -162,7 +208,7 @@ export const PARAM_SPECS: Record<Provider, Record<string, ParamSpec>> = {
     stream: { type: "boolean" },
     reasoning_effort: {
       type: "string",
-      values: ["low", "medium", "high"],
+      values: ["none", "minimal", "low", "medium", "high", "xhigh"],
     },
   },
   anthropic: {
@@ -209,6 +255,50 @@ export const PARAM_SPECS: Record<Provider, Record<string, ParamSpec>> = {
     stream: { type: "boolean" },
     seed: { type: "number" },
   },
+  bedrock: {
+    // Converse API inferenceConfig params
+    temperature: { type: "number", min: 0, max: 1 },
+    maxTokens: { type: "number", min: 1 },
+    topP: { type: "number", min: 0, max: 1 },
+    topK: { type: "number", min: 0 },
+    stopSequences: { type: "string" },
+    stream: { type: "boolean" },
+    cache_control: { type: "string", values: ["ephemeral"] },
+  },
+  openrouter: {
+    // Loose validation — proxies to many providers with varying ranges
+    temperature: { type: "number", min: 0, max: 2 },
+    max_tokens: { type: "number", min: 1 },
+    top_p: { type: "number", min: 0, max: 1 },
+    top_k: { type: "number", min: 0 },
+    frequency_penalty: { type: "number", min: -2, max: 2 },
+    presence_penalty: { type: "number", min: -2, max: 2 },
+    stop: { type: "string" },
+    n: { type: "number", min: 1 },
+    seed: { type: "number" },
+    stream: { type: "boolean" },
+    reasoning_effort: {
+      type: "string",
+      values: ["none", "minimal", "low", "medium", "high", "xhigh"],
+    },
+  },
+  vercel: {
+    // Loose validation — proxies to many providers with varying ranges
+    temperature: { type: "number", min: 0, max: 2 },
+    max_tokens: { type: "number", min: 1 },
+    top_p: { type: "number", min: 0, max: 1 },
+    top_k: { type: "number", min: 0 },
+    frequency_penalty: { type: "number", min: -2, max: 2 },
+    presence_penalty: { type: "number", min: -2, max: 2 },
+    stop: { type: "string" },
+    n: { type: "number", min: 1 },
+    seed: { type: "number" },
+    stream: { type: "boolean" },
+    reasoning_effort: {
+      type: "string",
+      values: ["none", "minimal", "low", "medium", "high", "xhigh"],
+    },
+  },
 };
 
 /** OpenAI reasoning models don't support standard sampling params. */
@@ -224,6 +314,33 @@ export const REASONING_MODEL_UNSUPPORTED = new Set([
   "n",
 ]);
 
+/**
+ * Bedrock model IDs are prefixed with the vendor name.
+ * e.g. "anthropic.claude-3-5-sonnet-20241022-v2:0"
+ */
+export type BedrockModelFamily =
+  | "anthropic"
+  | "meta"
+  | "amazon"
+  | "mistral"
+  | "cohere"
+  | "ai21";
+
+export function detectBedrockModelFamily(
+  model: string,
+): BedrockModelFamily | undefined {
+  const prefix = model.split(".")[0];
+  const families: BedrockModelFamily[] = [
+    "anthropic",
+    "meta",
+    "amazon",
+    "mistral",
+    "cohere",
+    "ai21",
+  ];
+  return families.find((f) => prefix === f);
+}
+
 /** Cache value normalization per provider. */
 export const CACHE_VALUES: Record<Provider, string | undefined> = {
   openai: undefined, // OpenAI auto-caches; no explicit param
@@ -231,4 +348,7 @@ export const CACHE_VALUES: Record<Provider, string | undefined> = {
   google: undefined, // Google uses explicit caching API, not a param
   mistral: undefined,
   cohere: undefined,
+  bedrock: "ephemeral", // Supported for Claude models on Bedrock
+  openrouter: undefined, // Depends on underlying provider
+  vercel: undefined, // Depends on underlying provider
 };

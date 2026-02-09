@@ -3,6 +3,7 @@ import {
   PARAM_SPECS,
   PROVIDER_PARAMS,
   REASONING_MODEL_UNSUPPORTED,
+  detectBedrockModelFamily,
   detectProvider,
   isReasoningModel,
 } from "./providers.js";
@@ -51,6 +52,33 @@ export function validate(config: LlmConnectionConfig): ValidationIssue[] {
         severity: "error",
       });
       continue;
+    }
+
+    // Bedrock model-family-specific checks
+    if (provider === "bedrock") {
+      const family = detectBedrockModelFamily(config.model);
+
+      // topK is only supported by Claude and Cohere on Bedrock
+      if (key === "topK" && family && family !== "anthropic" && family !== "cohere") {
+        issues.push({
+          param: key,
+          value,
+          message: `"topK" is not supported by ${family} models on Bedrock.`,
+          severity: "error",
+        });
+        continue;
+      }
+
+      // cache_control is only supported by Claude on Bedrock
+      if (key === "cache_control" && family !== "anthropic") {
+        issues.push({
+          param: key,
+          value,
+          message: `Prompt caching is only supported for Anthropic Claude models on Bedrock, not ${family ?? "unknown"} models.`,
+          severity: "error",
+        });
+        continue;
+      }
     }
 
     // Check if param is known for this provider

@@ -74,5 +74,5 @@ export type { NormalizeChange, NormalizeOptions, NormalizeResult } from "./norma
 export { validate } from "./validate.js";
 export type { ValidationIssue } from "./validate.js";
 
-export { detectProvider, ALIASES, PROVIDER_PARAMS } from "./providers.js";
-export type { Provider } from "./providers.js";
+export { detectProvider, detectBedrockModelFamily, ALIASES, PROVIDER_PARAMS } from "./providers.js";
+export type { Provider, BedrockModelFamily } from "./providers.js";
