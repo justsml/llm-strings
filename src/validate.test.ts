@@ -107,6 +107,30 @@ describe("validate", () => {
     });
   });
 
+  describe("cache TTL", () => {
+    it("accepts cache=5m for Anthropic", () => {
+      const issues = check(
+        "llm://api.anthropic.com/claude-sonnet-4-5?cache=5m",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("accepts cache=1h for Anthropic", () => {
+      const issues = check(
+        "llm://api.anthropic.com/claude-sonnet-4-5?cache=1h",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("flags invalid cache TTL for Anthropic", () => {
+      const issues = check(
+        "llm://api.anthropic.com/claude-sonnet-4-5?cache=15m",
+      );
+      expect(issues.some((i) => i.param === "cache_ttl")).toBe(true);
+      expect(issues.some((i) => i.message.includes("5m, 1h"))).toBe(true);
+    });
+  });
+
   describe("unknown params", () => {
     it("warns about unknown params", () => {
       const issues = check(
@@ -216,6 +240,15 @@ describe("validate", () => {
       expect(issues).toHaveLength(1);
       expect(issues[0].message).toContain("<= 2");
     });
+
+    it("flags temperature on reasoning models via OpenRouter", () => {
+      const issues = check(
+        "llm://openrouter.ai/openai/o3?temp=0.7",
+      );
+      expect(issues.some((i) => i.message.includes("not supported"))).toBe(
+        true,
+      );
+    });
   });
 
   describe("Vercel AI Gateway", () => {
@@ -232,6 +265,15 @@ describe("validate", () => {
       );
       expect(issues).toHaveLength(1);
       expect(issues[0].message).toContain("number");
+    });
+
+    it("flags temperature on reasoning models via Vercel", () => {
+      const issues = check(
+        "llm://gateway.ai.vercel.sh/openai/o4-mini?temp=0.5",
+      );
+      expect(issues.some((i) => i.message.includes("not supported"))).toBe(
+        true,
+      );
     });
   });
 

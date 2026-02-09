@@ -110,6 +110,7 @@ export const PROVIDER_PARAMS: Record<Provider, Record<string, string>> = {
     stream: "stream",
     effort: "effort",
     cache: "cache_control",
+    cache_ttl: "cache_ttl",
   },
   google: {
     temperature: "temperature",
@@ -154,6 +155,7 @@ export const PROVIDER_PARAMS: Record<Provider, Record<string, string>> = {
     stop: "stopSequences",
     stream: "stream",
     cache: "cache_control",
+    cache_ttl: "cache_ttl",
   },
   openrouter: {
     // OpenAI-compatible API with extra routing params
@@ -220,6 +222,7 @@ export const PARAM_SPECS: Record<Provider, Record<string, ParamSpec>> = {
     stream: { type: "boolean" },
     effort: { type: "string", values: ["low", "medium", "high", "max"] },
     cache_control: { type: "string", values: ["ephemeral"] },
+    cache_ttl: { type: "string", values: ["5m", "1h"] },
   },
   google: {
     temperature: { type: "number", min: 0, max: 2 },
@@ -264,6 +267,7 @@ export const PARAM_SPECS: Record<Provider, Record<string, ParamSpec>> = {
     stopSequences: { type: "string" },
     stream: { type: "boolean" },
     cache_control: { type: "string", values: ["ephemeral"] },
+    cache_ttl: { type: "string", values: ["5m", "1h"] },
   },
   openrouter: {
     // Loose validation — proxies to many providers with varying ranges
@@ -303,7 +307,14 @@ export const PARAM_SPECS: Record<Provider, Record<string, ParamSpec>> = {
 
 /** OpenAI reasoning models don't support standard sampling params. */
 export function isReasoningModel(model: string): boolean {
-  return /^o[134]/.test(model);
+  // Strip gateway prefix: "openai/o3" → "o3"
+  const name = model.includes("/") ? model.split("/").pop()! : model;
+  return /^o[134]/.test(name);
+}
+
+/** Providers that can route to OpenAI models (and need reasoning-model checks). */
+export function canHostOpenAIModels(provider: Provider): boolean {
+  return provider === "openai" || provider === "openrouter" || provider === "vercel";
 }
 
 export const REASONING_MODEL_UNSUPPORTED = new Set([
@@ -352,3 +363,18 @@ export const CACHE_VALUES: Record<Provider, string | undefined> = {
   openrouter: undefined, // Depends on underlying provider
   vercel: undefined, // Depends on underlying provider
 };
+
+/** Valid cache TTL values per provider. */
+export const CACHE_TTLS: Record<Provider, string[] | undefined> = {
+  openai: undefined,
+  anthropic: ["5m", "1h"],
+  google: undefined,
+  mistral: undefined,
+  cohere: undefined,
+  bedrock: ["5m", "1h"], // Claude on Bedrock uses same TTLs as direct Anthropic
+  openrouter: undefined,
+  vercel: undefined,
+};
+
+/** Match a duration expression like "5m", "1h", "30m". */
+export const DURATION_RE = /^\d+[mh]$/;

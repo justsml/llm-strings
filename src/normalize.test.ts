@@ -107,6 +107,39 @@ describe("normalize", () => {
       expect(result.params).toEqual({ cache_control: "ephemeral" });
     });
 
+    it("maps cache=5m → cache_control=ephemeral + cache_ttl=5m for Anthropic", () => {
+      const config = parse(
+        "llm://api.anthropic.com/claude-sonnet-4-5?cache=5m",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({
+        cache_control: "ephemeral",
+        cache_ttl: "5m",
+      });
+    });
+
+    it("maps cache=1h → cache_control=ephemeral + cache_ttl=1h for Anthropic", () => {
+      const config = parse(
+        "llm://api.anthropic.com/claude-sonnet-4-5?cache=1h",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({
+        cache_control: "ephemeral",
+        cache_ttl: "1h",
+      });
+    });
+
+    it("maps cache=1h for Claude on Bedrock", () => {
+      const config = parse(
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?cache=1h",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({
+        cache_control: "ephemeral",
+        cache_ttl: "1h",
+      });
+    });
+
     it("drops cache param for providers without explicit caching", () => {
       const config = parse("llm://api.openai.com/gpt-4o?cache=true");
       const { config: result } = normalize(config);
@@ -209,6 +242,14 @@ describe("normalize", () => {
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ reasoning_effort: "high" });
+    });
+
+    it("remaps max_tokens → max_completion_tokens for reasoning models via OpenRouter", () => {
+      const config = parse(
+        "llm://openrouter.ai/openai/o3?max=4096",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ max_completion_tokens: "4096" });
     });
 
     it("drops cache for OpenRouter (no explicit caching)", () => {

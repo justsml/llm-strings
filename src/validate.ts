@@ -3,6 +3,7 @@ import {
   PARAM_SPECS,
   PROVIDER_PARAMS,
   REASONING_MODEL_UNSUPPORTED,
+  canHostOpenAIModels,
   detectBedrockModelFamily,
   detectProvider,
   isReasoningModel,
@@ -39,9 +40,9 @@ export function validate(config: LlmConnectionConfig): ValidationIssue[] {
   const knownParams = new Set(Object.values(PROVIDER_PARAMS[provider]));
 
   for (const [key, value] of Object.entries(config.params)) {
-    // Check for OpenAI reasoning model restrictions
+    // Check for OpenAI reasoning model restrictions (direct or via gateway)
     if (
-      provider === "openai" &&
+      canHostOpenAIModels(provider) &&
       isReasoningModel(config.model) &&
       REASONING_MODEL_UNSUPPORTED.has(key)
     ) {

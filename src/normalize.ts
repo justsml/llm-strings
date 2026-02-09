@@ -1,8 +1,11 @@
 import type { LlmConnectionConfig } from "./index.js";
 import {
   ALIASES,
+  CACHE_TTLS,
   CACHE_VALUES,
+  DURATION_RE,
   PROVIDER_PARAMS,
+  canHostOpenAIModels,
   detectBedrockModelFamily,
   detectProvider,
   isReasoningModel,
@@ -72,24 +75,7 @@ export function normalize(
         if (family !== "anthropic") cacheValue = undefined;
       }
 
-      if (
-        cacheValue &&
-        (value === "true" || value === "1" || value === "yes")
-      ) {
-        const providerKey =
-          PROVIDER_PARAMS[provider]?.["cache"] ?? "cache";
-        if (options.verbose) {
-          changes.push({
-            from: "cache",
-            to: providerKey,
-            value: cacheValue,
-            reason: `cache=true → ${providerKey}=${cacheValue} for ${provider}`,
-          });
-        }
-        params[providerKey] = cacheValue;
-        continue;
-      }
-      // Provider/model doesn't support cache param — drop it with a note
+      // Provider/model doesn't support cache — drop it
       if (!cacheValue) {
         if (options.verbose) {
           changes.push({
@@ -98,6 +84,37 @@ export function normalize(
             value,
             reason: `${provider} does not use a cache param for this model (caching is automatic or unsupported)`,
           });
+        }
+        continue;
+      }
+
+      const isBool = value === "true" || value === "1" || value === "yes";
+      const isDuration = DURATION_RE.test(value);
+
+      if (isBool || isDuration) {
+        const providerKey =
+          PROVIDER_PARAMS[provider]?.["cache"] ?? "cache";
+        if (options.verbose) {
+          changes.push({
+            from: "cache",
+            to: providerKey,
+            value: cacheValue,
+            reason: `cache=${value} → ${providerKey}=${cacheValue} for ${provider}`,
+          });
+        }
+        params[providerKey] = cacheValue;
+
+        // Emit cache_ttl when a duration is specified
+        if (isDuration && CACHE_TTLS[provider]) {
+          if (options.verbose) {
+            changes.push({
+              from: "cache",
+              to: "cache_ttl",
+              value,
+              reason: `cache=${value} → cache_ttl=${value} for ${provider}`,
+            });
+          }
+          params["cache_ttl"] = value;
         }
         continue;
       }
@@ -119,9 +136,10 @@ export function normalize(
       }
     }
 
-    // Step 4: OpenAI reasoning model adjustments
+    // Step 4: OpenAI reasoning model adjustments (direct or via gateway)
     if (
-      provider === "openai" &&
+      provider &&
+      canHostOpenAIModels(provider) &&
       isReasoningModel(config.model) &&
       key === "max_tokens"
     ) {
