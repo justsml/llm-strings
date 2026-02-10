@@ -2,6 +2,9 @@
 
 **Connection strings for LLMs. Like database URLs, but for AI.**
 
+[![npm version](https://img.shields.io/npm/v/llm-strings.svg)](https://www.npmjs.com/package/llm-strings)
+[![License](https://img.shields.io/npm/l/llm-strings.svg)](https://github.com/justsml/llm-strings/blob/main/LICENSE)
+
 ```ini
 llm://api.openai.com/gpt-5.2?temp=0.7&max=2000
 llm://my-app:sk-key-123@api.anthropic.com/claude-sonnet-4-5?cache=5m
