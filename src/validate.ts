@@ -34,8 +34,7 @@ export function validate(
   options: ValidateOptions = {},
 ): ValidationIssue[] {
   const parsed = parse(connectionString);
-  const { config } = normalize(parsed);
-  const provider = detectProvider(config.host);
+  const { config, provider } = normalize(parsed);
   const issues: ValidationIssue[] = [];
 
   if (!provider) {
