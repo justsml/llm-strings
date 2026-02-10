@@ -1,9 +1,17 @@
-# llm-strings
+<div align="center">
+
+# 🔗 llm-strings
 
 **Connection strings for LLMs. Like database URLs, but for AI.**
 
 [![npm version](https://img.shields.io/npm/v/llm-strings.svg)](https://www.npmjs.com/package/llm-strings)
 [![License](https://img.shields.io/npm/l/llm-strings.svg)](https://github.com/justsml/llm-strings/blob/main/LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
+[![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](https://www.npmjs.com/package/llm-strings)
+
+</div>
+
+---
 
 ```ini
 llm://api.openai.com/gpt-5.2?temp=0.7&max=2000
@@ -15,7 +23,7 @@ Every LLM provider invented their own parameter names. `max_tokens` vs `maxOutpu
 
 **llm-strings** gives you a single, portable format. Parse it, normalize it to any provider's API, and validate it — all in one library with zero dependencies.
 
-Based on the [LLM Connection Strings](https://danlevy.net/llm-connection-strings/) specification.
+Based on the [LLM Connection Strings](https://danlevy.net/llm-connection-strings/) article by Dan Levy. See [draft IETF RFC for `llm://`](https://datatracker.ietf.org/doc/html/draft-levy-llm-uri-scheme-00).
 
 ## Install
 
@@ -360,6 +368,18 @@ import type {
 } from "llm-strings";
 ```
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
 ## License
 
 MIT
+
+---
+
+<div align="center">
+
+**[📖 Read the spec](https://danlevy.net/llm-connection-strings/) · [🐛 Report a bug](https://github.com/justsml/llm-strings/issues) · [💡 Request a feature](https://github.com/justsml/llm-strings/issues)**
+
+</div>
