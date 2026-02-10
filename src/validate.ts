@@ -18,13 +18,21 @@ export interface ValidationIssue {
   severity: "error" | "warning";
 }
 
+export interface ValidateOptions {
+  /** Promote warnings (unknown provider, unknown params) to errors. */
+  strict?: boolean;
+}
+
 /**
  * Validate an LLM connection string.
  *
  * Parses and normalizes the string, then checks params against provider specs.
  * Returns a list of issues found. An empty array means all params look valid.
  */
-export function validate(connectionString: string): ValidationIssue[] {
+export function validate(
+  connectionString: string,
+  options: ValidateOptions = {},
+): ValidationIssue[] {
   const parsed = parse(connectionString);
   const { config } = normalize(parsed);
   const provider = detectProvider(config.host);
@@ -35,7 +43,7 @@ export function validate(connectionString: string): ValidationIssue[] {
       param: "host",
       value: config.host,
       message: `Unknown provider for host "${config.host}". Validation skipped.`,
-      severity: "warning",
+      severity: options.strict ? "error" : "warning",
     });
     return issues;
   }
@@ -98,7 +106,7 @@ export function validate(connectionString: string): ValidationIssue[] {
         param: key,
         value,
         message: `Unknown param "${key}" for ${provider}.`,
-        severity: "warning",
+        severity: options.strict ? "error" : "warning",
       });
       continue;
     }

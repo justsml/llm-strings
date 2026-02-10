@@ -315,7 +315,7 @@ Normalizes parameters for the target provider:
 
 Pass `{ verbose: true }` to get a detailed `changes` array documenting each transformation.
 
-### `validate(connectionString): ValidationIssue[]`
+### `validate(connectionString, options?): ValidationIssue[]`
 
 Parses, normalizes, and validates a connection string against provider-specific rules. Returns `[]` if everything is valid. Checks:
 
@@ -324,6 +324,13 @@ Parses, normalizes, and validates a connection string against provider-specific 
 - Mutual exclusions (`temperature` + `top_p` on Anthropic)
 - Reasoning model restrictions (no `temperature` on o1/o3/o4)
 - Bedrock model family constraints (`topK` only for Claude/Cohere/Mistral)
+
+Pass `{ strict: true }` to promote warnings (unknown provider, unknown params) to errors:
+
+```ts
+validate("llm://custom-api.com/my-model?temp=0.5", { strict: true });
+// → [{ severity: "error", message: "Unknown provider …" }]
+```
 
 ### `detectProvider(host): Provider | undefined`
 
@@ -343,6 +350,7 @@ import type {
   NormalizeResult,
   NormalizeChange,
   NormalizeOptions,
+  ValidateOptions,
   ValidationIssue,
   Provider,
   BedrockModelFamily,

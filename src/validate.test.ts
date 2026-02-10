@@ -276,4 +276,33 @@ describe("validate", () => {
       expect(issues[0].message).toContain("Unknown provider");
     });
   });
+
+  describe("strict mode", () => {
+    it("returns error for unknown provider when strict", () => {
+      const issues = validate("llm://custom-api.com/my-model?temp=0.5", {
+        strict: true,
+      });
+      expect(issues).toHaveLength(1);
+      expect(issues[0].severity).toBe("error");
+      expect(issues[0].message).toContain("Unknown provider");
+    });
+
+    it("returns error for unknown params when strict", () => {
+      const issues = validate(
+        "llm://api.openai.com/gpt-5.2?made_up_param=hello",
+        { strict: true },
+      );
+      expect(issues).toHaveLength(1);
+      expect(issues[0].severity).toBe("error");
+      expect(issues[0].message).toContain("Unknown param");
+    });
+
+    it("does not affect valid configs", () => {
+      const issues = validate(
+        "llm://api.openai.com/gpt-5.2?temp=0.7&max=1500",
+        { strict: true },
+      );
+      expect(issues).toEqual([]);
+    });
+  });
 });
