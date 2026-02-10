@@ -5,22 +5,22 @@ import { detectBedrockModelFamily } from "./providers.js";
 
 describe("Bedrock Inference Profiles", () => {
   it("should detect family for standard model IDs", () => {
-    expect(detectBedrockModelFamily("anthropic.claude-3-5-sonnet-20241022-v2:0")).toBe("anthropic");
+    expect(detectBedrockModelFamily("anthropic.claude-sonnet-4-5-20250929-v1:0")).toBe("anthropic");
     expect(detectBedrockModelFamily("amazon.nova-pro-v1:0")).toBe("amazon");
   });
 
   it("should detect family for cross-region inference profiles", () => {
     // Current implementation fails here because it splits by '.' and takes the first part ('us')
-    expect(detectBedrockModelFamily("us.anthropic.claude-3-5-sonnet-20241022-v2:0")).toBe("anthropic");
-    expect(detectBedrockModelFamily("eu.anthropic.claude-3-5-sonnet-20241022-v2:0")).toBe("anthropic");
-    expect(detectBedrockModelFamily("global.anthropic.claude-3-5-sonnet-20241022-v2:0")).toBe("anthropic");
+    expect(detectBedrockModelFamily("us.anthropic.claude-sonnet-4-5-20250929-v1:0")).toBe("anthropic");
+    expect(detectBedrockModelFamily("eu.anthropic.claude-sonnet-4-5-20250929-v1:0")).toBe("anthropic");
+    expect(detectBedrockModelFamily("global.anthropic.claude-sonnet-4-5-20250929-v1:0")).toBe("anthropic");
   });
 
   it("should preserve cache for cross-region Bedrock Anthropic models", () => {
     const config = {
-      raw: "llm://bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0?cache=true",
+      raw: "llm://bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0?cache=true",
       host: "bedrock",
-      model: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+      model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
       params: { cache: "true" },
     };
     const result = normalize(config);

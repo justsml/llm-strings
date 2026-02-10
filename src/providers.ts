@@ -335,7 +335,7 @@ export const REASONING_MODEL_UNSUPPORTED = new Set([
 
 /**
  * Bedrock model IDs are prefixed with the vendor name.
- * e.g. "anthropic.claude-3-5-sonnet-20241022-v2:0"
+ * e.g. "anthropic.claude-sonnet-4-5-20250929-v1:0"
  */
 export type BedrockModelFamily =
   | "anthropic"
@@ -348,8 +348,8 @@ export type BedrockModelFamily =
 export function detectBedrockModelFamily(
   model: string,
 ): BedrockModelFamily | undefined {
-  // Handle cross-region inference profiles (e.g. "us.anthropic.claude-3-5-sonnet...")
-  // and global inference profiles (e.g. "global.anthropic.claude-3-5-sonnet...")
+  // Handle cross-region inference profiles (e.g. "us.anthropic.claude-sonnet-4-5...")
+  // and global inference profiles (e.g. "global.anthropic.claude-sonnet-4-5...")
   const parts = model.split(".");
   
   // If first part is a region prefix (us, eu, apac) or global, skip it

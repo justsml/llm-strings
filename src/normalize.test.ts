@@ -5,20 +5,20 @@ import { parse } from "./index.js";
 describe("normalize", () => {
   describe("alias expansion", () => {
     it("expands temp → temperature", () => {
-      const config = parse("llm://api.openai.com/gpt-4o?temp=0.7");
+      const config = parse("llm://api.openai.com/gpt-5.2?temp=0.7");
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ temperature: "0.7" });
     });
 
     it("expands max → max_tokens for OpenAI", () => {
-      const config = parse("llm://api.openai.com/gpt-4o?max=1500");
+      const config = parse("llm://api.openai.com/gpt-5.2?max=1500");
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ max_tokens: "1500" });
     });
 
     it("expands multiple aliases at once", () => {
       const config = parse(
-        "llm://api.openai.com/gpt-4o?temp=0.7&max=1500&topp=0.9",
+        "llm://api.openai.com/gpt-5.2?temp=0.7&max=1500&topp=0.9",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({
@@ -30,7 +30,7 @@ describe("normalize", () => {
 
     it("expands freq_penalty and pres_penalty", () => {
       const config = parse(
-        "llm://api.openai.com/gpt-4o?freq_penalty=0.5&pres_penalty=0.3",
+        "llm://api.openai.com/gpt-5.2?freq_penalty=0.5&pres_penalty=0.3",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({
@@ -43,7 +43,7 @@ describe("normalize", () => {
   describe("provider-specific mapping", () => {
     it("maps max_tokens → maxOutputTokens for Google", () => {
       const config = parse(
-        "llm://generativelanguage.googleapis.com/gemini-2.5-pro?max=1500&top_p=0.9",
+        "llm://generativelanguage.googleapis.com/gemini-3-flash-preview?max=1500&top_p=0.9",
       );
       const { config: result, provider } = normalize(config);
       expect(provider).toBe("google");
@@ -55,7 +55,7 @@ describe("normalize", () => {
 
     it("maps top_p → p and top_k → k for Cohere", () => {
       const config = parse(
-        "llm://api.cohere.com/command-r-plus?top_p=0.9&top_k=40",
+        "llm://api.cohere.com/command-a-03-2025?top_p=0.9&top_k=40",
       );
       const { config: result, provider } = normalize(config);
       expect(provider).toBe("cohere");
@@ -71,7 +71,7 @@ describe("normalize", () => {
     });
 
     it("maps seed → random_seed for Mistral", () => {
-      const config = parse("llm://api.mistral.ai/mistral-large?seed=42");
+      const config = parse("llm://api.mistral.ai/mistral-large-latest?seed=42");
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ random_seed: "42" });
     });
@@ -131,7 +131,7 @@ describe("normalize", () => {
 
     it("maps cache=1h for Claude on Bedrock", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?cache=1h",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-sonnet-4-5-20250929-v1:0?cache=1h",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({
@@ -141,7 +141,7 @@ describe("normalize", () => {
     });
 
     it("drops cache param for providers without explicit caching", () => {
-      const config = parse("llm://api.openai.com/gpt-4o?cache=true");
+      const config = parse("llm://api.openai.com/gpt-5.2?cache=true");
       const { config: result } = normalize(config);
       expect(result.params).toEqual({});
     });
@@ -164,14 +164,14 @@ describe("normalize", () => {
   describe("AWS Bedrock", () => {
     it("detects bedrock from amazonaws.com host", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-sonnet-4-5-20250929-v1:0",
       );
       expect(normalize(config).provider).toBe("bedrock");
     });
 
     it("maps max_tokens → maxTokens for Bedrock Converse API", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?max=4096",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-sonnet-4-5-20250929-v1:0?max=4096",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ maxTokens: "4096" });
@@ -179,7 +179,7 @@ describe("normalize", () => {
 
     it("maps top_p → topP and stop → stopSequences", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-west-2.amazonaws.com/meta.llama3-2-90b-instruct-v1:0?top_p=0.9&stop=END",
+        "llm://bedrock-runtime.us-west-2.amazonaws.com/meta.llama4-maverick-17b-instruct-v1:0?top_p=0.9&stop=END",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ topP: "0.9", stopSequences: "END" });
@@ -187,7 +187,7 @@ describe("normalize", () => {
 
     it("maps top_k → topK for Claude on Bedrock", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?topk=40",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-sonnet-4-5-20250929-v1:0?topk=40",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ topK: "40" });
@@ -195,7 +195,7 @@ describe("normalize", () => {
 
     it("maps cache=true → cache_control=ephemeral for Claude on Bedrock", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0?cache=true",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-sonnet-4-5-20250929-v1:0?cache=true",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ cache_control: "ephemeral" });
@@ -203,7 +203,7 @@ describe("normalize", () => {
 
     it("drops cache for non-Claude models on Bedrock", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/meta.llama3-2-90b-instruct-v1:0?cache=true",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/meta.llama4-maverick-17b-instruct-v1:0?cache=true",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({});
@@ -211,7 +211,7 @@ describe("normalize", () => {
 
     it("normalizes a full Bedrock connection string", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/amazon.titan-text-express-v1?temp=0.5&max=500&top_p=0.9",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/amazon.nova-lite-v1:0?temp=0.5&max=500&top_p=0.9",
       );
       const { config: result, provider } = normalize(config);
       expect(provider).toBe("bedrock");
@@ -226,7 +226,7 @@ describe("normalize", () => {
   describe("OpenRouter", () => {
     it("detects openrouter and uses OpenAI-compatible params", () => {
       const config = parse(
-        "llm://openrouter.ai/anthropic/claude-3.5-sonnet?temp=0.7&max=2000",
+        "llm://openrouter.ai/anthropic/claude-sonnet-4-5?temp=0.7&max=2000",
       );
       const { config: result, provider } = normalize(config);
       expect(provider).toBe("openrouter");
@@ -254,7 +254,7 @@ describe("normalize", () => {
 
     it("drops cache for OpenRouter (no explicit caching)", () => {
       const config = parse(
-        "llm://openrouter.ai/anthropic/claude-3.5-sonnet?cache=true",
+        "llm://openrouter.ai/anthropic/claude-sonnet-4-5?cache=true",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({});
@@ -264,7 +264,7 @@ describe("normalize", () => {
   describe("Vercel AI Gateway", () => {
     it("detects vercel and uses OpenAI-compatible params", () => {
       const config = parse(
-        "llm://gateway.ai.vercel.sh/openai/gpt-4o?temp=0.7&max=1500&top_p=0.9",
+        "llm://gateway.ai.vercel.sh/openai/gpt-5.2?temp=0.7&max=1500&top_p=0.9",
       );
       const { config: result, provider } = normalize(config);
       expect(provider).toBe("vercel");
@@ -277,7 +277,7 @@ describe("normalize", () => {
 
     it("keeps top_k as top_k (gateway supports multi-provider)", () => {
       const config = parse(
-        "llm://gateway.ai.vercel.sh/anthropic/claude-3.5-sonnet?topk=40",
+        "llm://gateway.ai.vercel.sh/anthropic/claude-sonnet-4-5?topk=40",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({ top_k: "40" });
@@ -286,7 +286,7 @@ describe("normalize", () => {
 
   describe("provider detection", () => {
     it("detects openai", () => {
-      const config = parse("llm://api.openai.com/gpt-4o");
+      const config = parse("llm://api.openai.com/gpt-5.2");
       expect(normalize(config).provider).toBe("openai");
     });
 
@@ -297,38 +297,38 @@ describe("normalize", () => {
 
     it("detects google", () => {
       const config = parse(
-        "llm://generativelanguage.googleapis.com/gemini-2.5-pro",
+        "llm://generativelanguage.googleapis.com/gemini-3-flash-preview",
       );
       expect(normalize(config).provider).toBe("google");
     });
 
     it("detects mistral", () => {
-      const config = parse("llm://api.mistral.ai/mistral-large");
+      const config = parse("llm://api.mistral.ai/mistral-large-latest");
       expect(normalize(config).provider).toBe("mistral");
     });
 
     it("detects cohere", () => {
-      const config = parse("llm://api.cohere.com/command-r-plus");
+      const config = parse("llm://api.cohere.com/command-a-03-2025");
       expect(normalize(config).provider).toBe("cohere");
     });
 
     it("detects bedrock", () => {
       const config = parse(
-        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-sonnet-4-5-20250929-v1:0",
       );
       expect(normalize(config).provider).toBe("bedrock");
     });
 
     it("detects openrouter", () => {
       const config = parse(
-        "llm://openrouter.ai/anthropic/claude-3.5-sonnet",
+        "llm://openrouter.ai/anthropic/claude-sonnet-4-5",
       );
       expect(normalize(config).provider).toBe("openrouter");
     });
 
     it("detects vercel", () => {
       const config = parse(
-        "llm://gateway.ai.vercel.sh/openai/gpt-4o",
+        "llm://gateway.ai.vercel.sh/openai/gpt-5.2",
       );
       expect(normalize(config).provider).toBe("vercel");
     });
@@ -355,7 +355,7 @@ describe("normalize", () => {
 
     it("returns empty changes when verbose is false", () => {
       const config = parse(
-        "llm://api.openai.com/gpt-4o?temp=0.7",
+        "llm://api.openai.com/gpt-5.2?temp=0.7",
       );
       const { changes } = normalize(config, { verbose: false });
       expect(changes).toEqual([]);
@@ -365,7 +365,7 @@ describe("normalize", () => {
   describe("passthrough", () => {
     it("passes through already-canonical params unchanged", () => {
       const config = parse(
-        "llm://api.openai.com/gpt-4o?temperature=0.7&max_tokens=1500",
+        "llm://api.openai.com/gpt-5.2?temperature=0.7&max_tokens=1500",
       );
       const { config: result } = normalize(config);
       expect(result.params).toEqual({
