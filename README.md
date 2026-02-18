@@ -13,11 +13,15 @@
 
 ---
 
+![the parts of a LLM connection string](./assets/inline-url-diagram-dark.svg)
+
 ```ini
 llm://api.openai.com/gpt-5.2?temp=0.7&max=2000
 llm://my-app:sk-key-123@api.anthropic.com/claude-sonnet-4-5?cache=5m
 llm://bedrock-runtime.us-east-1.amazonaws.com/anthropic.claude-sonnet-4-5-20250929-v1:0?temp=0.5
 ```
+
+
 
 Every LLM provider invented their own parameter names. `max_tokens` vs `maxOutputTokens` vs `maxTokens`. `top_p` vs `topP` vs `p`. `stop` vs `stop_sequences` vs `stopSequences`. You write the config once, then rewrite it for every provider.
 
