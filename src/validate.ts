@@ -7,7 +7,6 @@ import {
   bedrockSupportsCaching,
   canHostOpenAIModels,
   detectBedrockModelFamily,
-  detectProvider,
   isReasoningModel,
 } from "./providers.js";
 

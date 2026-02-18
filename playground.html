@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM String Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root {
+  --bg-deep: #06060c;
+  --bg-surface: #0d0d18;
+  --bg-raised: #131320;
+  --bg-input: #16162a;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --border-focus: rgba(99,102,241,0.5);
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #4a5568;
+  --syn-protocol: #64748b;
+  --syn-label: #22d3ee;
+  --syn-apikey: #f87171;
+  --syn-sep: #475569;
+  --syn-host: #818cf8;
+  --syn-model: #34d399;
+  --syn-param-name: #c084fc;
+  --syn-param-value: #fbbf24;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --accent: #6366f1;
+  --radius: 12px;
+}
+html{
+  font-family:'Lexend',sans-serif;
+  background:var(--bg-deep);
+  color:var(--text-primary);
+  -webkit-font-smoothing:antialiased;
+}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 50% -20%, rgba(99,102,241,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 60%, rgba(52,211,153,0.03) 0%, transparent 40%),
+    var(--bg-deep);
+}
+.app{
+  max-width:700px;
+  margin:0 auto;
+  padding:40px 20px 80px;
+}
+.header{text-align:center;margin-bottom:36px}
+.header h1{
+  font-size:28px;font-weight:700;
+  background:linear-gradient(135deg,#818cf8,#34d399);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:-0.5px;
+}
+.header .sub{font-size:14px;color:var(--text-muted);margin-top:4px;font-weight:300}
+
+/* ── Cards ── */
+.card{
+  background:rgba(255,255,255,0.015);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:24px;
+  margin-bottom:16px;
+  transition:border-color 0.2s;
+  position:relative;
+}
+.card:hover{border-color:var(--border-hover)}
+.card-title{
+  font-size:13px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.8px;
+  color:var(--text-secondary);margin-bottom:18px;
+  display:flex;align-items:center;gap:8px;
+}
+.card-opt{
+  font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;
+  color:var(--text-muted);background:rgba(255,255,255,0.04);
+  padding:2px 8px;border-radius:20px;
+}
+
+/* ── Form layout ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-field{display:flex;flex-direction:column;gap:6px}
+.form-field.full{grid-column:1/-1}
+.field-label{font-size:12px;font-weight:500;color:var(--text-secondary)}
+
+/* ── Inputs ── */
+.input{
+  width:100%;padding:10px 14px;
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  color:var(--text-primary);
+  font-family:'Lexend',sans-serif;font-size:14px;
+  outline:none;transition:border-color 0.2s,box-shadow 0.2s;
+}
+.input:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
+.input::placeholder{color:var(--text-muted)}
+.input[type="number"]{-moz-appearance:textfield}
+.input[type="number"]::-webkit-inner-spin-button,
+.input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none}
+select.input{cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;
+}
+
+/* ── API Key ── */
+.apikey-wrap{position:relative}
+.apikey-wrap .input{padding-right:42px}
+.apikey-toggle{
+  position:absolute;right:1px;top:1px;bottom:1px;width:38px;
+  background:transparent;border:none;color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:0 var(--radius) var(--radius) 0;transition:color 0.2s;
+}
+.apikey-toggle:hover{color:var(--text-secondary)}
+
+/* ── Combobox ── */
+.combobox{position:relative}
+.combobox-wrap{position:relative}
+.combobox-wrap .input{padding-right:32px}
+.combobox-chev{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--text-muted);transition:transform 0.2s;
+}
+.combobox-chev.open{transform:translateY(-50%) rotate(180deg)}
+.combobox-dd{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--bg-raised);border:1px solid var(--border-hover);
+  border-radius:var(--radius);padding:4px;z-index:9999;
+  max-height:240px;overflow-y:auto;
+  box-shadow:0 12px 40px rgba(0,0,0,0.4);
+  animation:ddIn 0.15s ease-out;
+}
+@keyframes ddIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.combobox-dd::-webkit-scrollbar{width:6px}
+.combobox-dd::-webkit-scrollbar-track{background:transparent}
+.combobox-dd::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
+.cb-opt{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;cursor:pointer;
+  transition:background 0.1s;
+}
+.cb-opt:hover,.cb-opt.hl{background:rgba(255,255,255,0.05)}
+.cb-opt-icon{flex-shrink:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cb-opt-label{font-size:14px;font-weight:500;color:var(--text-primary)}
+.cb-opt-sub{font-size:11px;color:var(--text-muted);margin-left:auto;font-family:'JetBrains Mono',monospace}
+
+/* ── Toggle ── */
+.toggle{
+  width:48px;height:26px;border-radius:13px;border:none;
+  background:var(--bg-input);position:relative;cursor:pointer;
+  transition:background 0.25s;flex-shrink:0;
+  border:1px solid var(--border);
+}
+.toggle.on{background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.4)}
+.toggle-thumb{
+  position:absolute;top:3px;left:3px;width:18px;height:18px;
+  border-radius:50%;background:var(--text-muted);
+  transition:transform 0.25s,background 0.25s;
+}
+.toggle.on .toggle-thumb{transform:translateX(22px);background:var(--success)}
+
+/* ── Param rows ── */
+.params-empty{
+  font-size:13px;color:var(--text-muted);
+  text-align:center;padding:20px 0;
+  border:1px dashed rgba(255,255,255,0.06);
+  border-radius:var(--radius);margin-bottom:16px;
+}
+.param-row{
+  display:grid;grid-template-columns:140px 1fr auto auto;
+  align-items:center;gap:12px;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);
+  animation:paramIn 0.2s ease-out;
+}
+@keyframes paramIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.param-row:last-of-type{border-bottom:none}
+.param-name{
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:var(--syn-param-name);font-weight:500;
+  display:flex;align-items:center;gap:6px;
+}
+.param-input{display:flex;align-items:center;gap:8px}
+.param-input .input{font-family:'JetBrains Mono',monospace;font-size:13px}
+.param-issue{
+  font-size:14px;width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;flex-shrink:0;cursor:help;
+}
+.param-issue.error{color:var(--error)}
+.param-issue.warn{color:var(--warning)}
+.param-remove{
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid transparent;color:var(--text-muted);
+  cursor:pointer;border-radius:8px;transition:all 0.15s;flex-shrink:0;
+}
+.param-remove:hover{background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.2);color:var(--error)}
+
+/* ── Number input with slider ── */
+.num-group{display:flex;align-items:center;gap:10px;width:100%}
+.num-group .input{width:80px;text-align:center;flex-shrink:0}
+.slider-wrap{flex:1;display:flex;flex-direction:column;gap:2px;min-width:80px}
+.slider{
+  -webkit-appearance:none;appearance:none;width:100%;height:4px;
+  background:var(--bg-input);border-radius:2px;outline:none;
+}
+.slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--bg-surface);
+  box-shadow:0 0 8px rgba(99,102,241,0.3);
+}
+.slider::-moz-range-thumb{
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--bg-surface);
+}
+.slider-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+
+/* ── Add param ── */
+.add-param{position:relative;margin-top:16px}
+.add-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--radius);
+  background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15);
+  color:var(--accent);font-size:13px;font-weight:500;
+  font-family:'Lexend',sans-serif;cursor:pointer;transition:all 0.2s;
+}
+.add-btn:hover{background:rgba(99,102,241,0.14);border-color:rgba(99,102,241,0.3)}
+.add-dd{
+  position:absolute;bottom:calc(100% + 6px);left:0;width:340px;
+  background:var(--bg-raised);border:1px solid var(--border-hover);
+  border-radius:var(--radius);padding:4px;z-index:9999;
+  max-height:280px;overflow-y:auto;
+  box-shadow:0 -12px 40px rgba(0,0,0,0.4);
+  animation:addIn 0.15s ease-out;
+}
+@keyframes addIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.add-opt{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:8px 10px;border-radius:8px;cursor:pointer;
+  background:transparent;border:none;color:var(--text-primary);
+  font-family:'Lexend',sans-serif;text-align:left;transition:background 0.1s;
+}
+.add-opt:hover{background:rgba(255,255,255,0.05)}
+.add-opt-name{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--syn-param-name);min-width:120px}
+.add-opt-type{
+  font-size:9px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;
+  padding:2px 6px;border-radius:4px;
+  background:rgba(99,102,241,0.12);color:var(--accent);
+}
+.add-opt-desc{font-size:11px;color:var(--text-muted);margin-left:auto;white-space:nowrap}
+
+/* ── Preview ── */
+.preview-card{
+  position:relative;
+  background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(52,211,153,0.04));
+  border-radius:16px;padding:20px 24px;margin-bottom:24px;
+
+}
+.preview-card::before{
+  content:'';position:absolute;inset:0;border-radius:16px;padding:1px;
+  background:linear-gradient(135deg,rgba(99,102,241,0.4),rgba(52,211,153,0.35),rgba(251,191,36,0.3),rgba(192,132,252,0.35));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;
+}
+.preview-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.preview-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)}
+.preview-badges{display:flex;gap:6px}
+.badge{
+  font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;
+  display:flex;align-items:center;gap:4px;
+}
+.badge-ok{background:rgba(52,211,153,0.12);color:var(--success)}
+.badge-err{background:rgba(248,113,113,0.12);color:var(--error)}
+.badge-warn{background:rgba(251,191,36,0.12);color:var(--warning)}
+.preview-body{
+  position:relative;cursor:pointer;
+  padding:14px 16px;border-radius:10px;
+  background:rgba(0,0,0,0.3);
+  transition:background 0.2s;
+  min-height:42px;
+}
+.preview-body:hover{background:rgba(0,0,0,0.45)}
+.preview-code{
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  line-height:1.6;word-break:break-all;
+}
+.syn-protocol{color:var(--syn-protocol)}
+.syn-label{color:var(--syn-label)}
+.syn-apikey{color:var(--syn-apikey);cursor:pointer}
+.syn-apikey:hover{text-decoration:underline}
+.syn-sep{color:var(--syn-sep)}
+.syn-host{color:var(--syn-host)}
+.syn-model{color:var(--syn-model)}
+.syn-param-name{color:var(--syn-param-name)}
+.syn-param-value{color:var(--syn-param-value)}
+.syn-placeholder{color:var(--text-muted);font-style:italic}
+.preview-hint{
+  position:absolute;right:12px;bottom:10px;
+  font-size:11px;color:var(--text-muted);
+  transition:all 0.2s;pointer-events:none;
+}
+.preview-hint.copied{color:var(--success)}
+
+/* ── Import ── */
+.import-row{
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px;gap:8px;
+}
+.import-btn{
+  background:transparent;border:none;color:var(--text-muted);
+  font-size:12px;font-family:'Lexend',sans-serif;cursor:pointer;
+  padding:4px 8px;border-radius:6px;transition:color 0.2s;
+}
+.import-btn:hover{color:var(--text-secondary)}
+.import-input{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  animation:ddIn 0.15s ease-out;flex:1;max-width:400px;
+}
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  .form-row{grid-template-columns:1fr}
+  .param-row{grid-template-columns:100px 1fr auto auto;gap:8px}
+  .add-dd{width:calc(100vw - 56px)}
+  .app{padding:24px 14px 60px}
+  .preview-code{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+
+const PROVIDERS = [
+  { id:'openai',     name:'OpenAI',      host:'api.openai.com',                            color:'#10a37f' },
+  { id:'anthropic',  name:'Anthropic',   host:'api.anthropic.com',                         color:'#e8956a' },
+  { id:'google',     name:'Google',      host:'generativelanguage.googleapis.com',          color:'#4285f4' },
+  { id:'mistral',    name:'Mistral',     host:'api.mistral.ai',                            color:'#ff7000' },
+  { id:'cohere',     name:'Cohere',      host:'api.cohere.com',                            color:'#39594d' },
+  { id:'bedrock',    name:'Bedrock',     host:'bedrock-runtime.us-east-1.amazonaws.com',   color:'#ff9900' },
+  { id:'openrouter', name:'OpenRouter',  host:'openrouter.ai',                             color:'#818cf8' },
+  { id:'vercel',     name:'Vercel',      host:'gateway.ai.vercel.app',                     color:'#ededed' },
+];
+
+const MODELS = {
+  openai:     ['gpt-5.2','gpt-5.2-pro','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','o3','o3-mini','o4-mini','o1-pro'],
+  anthropic:  ['claude-opus-4-6','claude-sonnet-4-6','claude-sonnet-4-5','claude-haiku-4-5'],
+  google:     ['gemini-3-pro-preview','gemini-3-flash-preview','gemini-2.5-pro','gemini-2.5-flash'],
+  mistral:    ['mistral-large-latest','mistral-medium-latest','mistral-small-latest','codestral-latest','magistral-medium-latest'],
+  cohere:     ['command-a-03-2025','command-r-plus-08-2024','command-r-08-2024','command-r7b-12-2024'],
+  bedrock:    ['anthropic.claude-opus-4-6-v1','anthropic.claude-sonnet-4-6-v1','anthropic.claude-haiku-4-5-v1','amazon.nova-pro-v1','amazon.nova-lite-v1','meta.llama3-70b-instruct-v1:0'],
+  openrouter: ['openai/gpt-5.2','anthropic/claude-opus-4-6','google/gemini-2.5-pro','mistral/mistral-large-latest'],
+  vercel:     ['openai/gpt-5.2','anthropic/claude-opus-4-6','google/gemini-2.5-pro'],
+};
+
+// Canonical param specs per provider
+const PARAM_SPECS = {
+  openai: {
+    temperature:      { type:'number', min:0, max:2, def:0.7,    desc:'Controls randomness' },
+    max_tokens:       { type:'number', min:1, def:4096,          desc:'Maximum output tokens' },
+    top_p:            { type:'number', min:0, max:1, def:1,      desc:'Nucleus sampling' },
+    frequency_penalty:{ type:'number', min:-2, max:2, def:0,     desc:'Penalize frequent tokens' },
+    presence_penalty: { type:'number', min:-2, max:2, def:0,     desc:'Penalize repeated topics' },
+    stop:             { type:'string', def:'',                    desc:'Stop sequences' },
+    n:                { type:'number', min:1, def:1,             desc:'Completions count' },
+    seed:             { type:'number', def:'',                    desc:'Random seed' },
+    stream:           { type:'boolean', def:false,                desc:'Stream response' },
+    effort:           { type:'enum', values:['none','minimal','low','medium','high','xhigh'], def:'medium', desc:'Reasoning effort' },
+  },
+  anthropic: {
+    temperature: { type:'number', min:0, max:1, def:0.7,   desc:'Controls randomness' },
+    max_tokens:  { type:'number', min:1, def:4096,         desc:'Maximum output tokens' },
+    top_p:       { type:'number', min:0, max:1, def:1,     desc:'Nucleus sampling' },
+    top_k:       { type:'number', min:0, def:40,           desc:'Top-K sampling' },
+    stop:        { type:'string', def:'',                   desc:'Stop sequences' },
+    stream:      { type:'boolean', def:false,               desc:'Stream response' },
+    effort:      { type:'enum', values:['low','medium','high','max'], def:'medium', desc:'Thinking effort' },
+    cache:       { type:'enum', values:['ephemeral'], def:'ephemeral', desc:'Cache control' },
+    cache_ttl:   { type:'enum', values:['5m','1h'], def:'5m',         desc:'Cache TTL' },
+  },
+  google: {
+    temperature:      { type:'number', min:0, max:2, def:0.7,  desc:'Controls randomness' },
+    max_tokens:       { type:'number', min:1, def:4096,        desc:'Maximum output tokens' },
+    top_p:            { type:'number', min:0, max:1, def:1,    desc:'Nucleus sampling' },
+    top_k:            { type:'number', min:0, def:40,          desc:'Top-K sampling' },
+    frequency_penalty:{ type:'number', min:-2, max:2, def:0,   desc:'Penalize frequent tokens' },
+    presence_penalty: { type:'number', min:-2, max:2, def:0,   desc:'Penalize repeated topics' },
+    stop:             { type:'string', def:'',                  desc:'Stop sequences' },
+    n:                { type:'number', min:1, def:1,           desc:'Candidate count' },
+    stream:           { type:'boolean', def:false,              desc:'Stream response' },
+    seed:             { type:'number', def:'',                  desc:'Random seed' },
+  },
+  mistral: {
+    temperature:      { type:'number', min:0, max:1, def:0.7,  desc:'Controls randomness' },
+    max_tokens:       { type:'number', min:1, def:4096,        desc:'Maximum output tokens' },
+    top_p:            { type:'number', min:0, max:1, def:1,    desc:'Nucleus sampling' },
+    frequency_penalty:{ type:'number', min:-2, max:2, def:0,   desc:'Penalize frequent tokens' },
+    presence_penalty: { type:'number', min:-2, max:2, def:0,   desc:'Penalize repeated topics' },
+    stop:             { type:'string', def:'',                  desc:'Stop sequences' },
+    n:                { type:'number', min:1, def:1,           desc:'Completions count' },
+    seed:             { type:'number', def:'',                  desc:'Random seed' },
+    stream:           { type:'boolean', def:false,              desc:'Stream response' },
+    safe_prompt:      { type:'boolean', def:false,              desc:'Enable safe prompt' },
+    min_tokens:       { type:'number', min:0, def:0,           desc:'Minimum tokens' },
+  },
+  cohere: {
+    temperature:      { type:'number', min:0, max:1, def:0.7,  desc:'Controls randomness' },
+    max_tokens:       { type:'number', min:1, def:4096,        desc:'Maximum output tokens' },
+    top_p:            { type:'number', min:0, max:1, def:1,    desc:'Nucleus sampling (p)' },
+    top_k:            { type:'number', min:0, max:500, def:40, desc:'Top-K sampling (k)' },
+    frequency_penalty:{ type:'number', min:0, max:1, def:0,    desc:'Penalize frequent tokens' },
+    presence_penalty: { type:'number', min:0, max:1, def:0,    desc:'Penalize repeated topics' },
+    stop:             { type:'string', def:'',                  desc:'Stop sequences' },
+    stream:           { type:'boolean', def:false,              desc:'Stream response' },
+    seed:             { type:'number', def:'',                  desc:'Random seed' },
+  },
+  bedrock: {
+    temperature: { type:'number', min:0, max:1, def:0.7,   desc:'Controls randomness' },
+    max_tokens:  { type:'number', min:1, def:4096,         desc:'Maximum output tokens' },
+    top_p:       { type:'number', min:0, max:1, def:1,     desc:'Nucleus sampling' },
+    top_k:       { type:'number', min:0, def:40,           desc:'Top-K sampling' },
+    stop:        { type:'string', def:'',                   desc:'Stop sequences' },
+    stream:      { type:'boolean', def:false,               desc:'Stream response' },
+    cache:       { type:'enum', values:['ephemeral'], def:'ephemeral', desc:'Cache control' },
+    cache_ttl:   { type:'enum', values:['5m','1h'], def:'5m',         desc:'Cache TTL' },
+  },
+  openrouter: {
+    temperature:      { type:'number', min:0, max:2, def:0.7,  desc:'Controls randomness' },
+    max_tokens:       { type:'number', min:1, def:4096,        desc:'Maximum output tokens' },
+    top_p:            { type:'number', min:0, max:1, def:1,    desc:'Nucleus sampling' },
+    top_k:            { type:'number', min:0, def:40,          desc:'Top-K sampling' },
+    frequency_penalty:{ type:'number', min:-2, max:2, def:0,   desc:'Penalize frequent tokens' },
+    presence_penalty: { type:'number', min:-2, max:2, def:0,   desc:'Penalize repeated topics' },
+    stop:             { type:'string', def:'',                  desc:'Stop sequences' },
+    n:                { type:'number', min:1, def:1,           desc:'Completions count' },
+    seed:             { type:'number', def:'',                  desc:'Random seed' },
+    stream:           { type:'boolean', def:false,              desc:'Stream response' },
+    effort:           { type:'enum', values:['none','minimal','low','medium','high','xhigh'], def:'medium', desc:'Reasoning effort' },
+  },
+  vercel: {
+    temperature:      { type:'number', min:0, max:2, def:0.7,  desc:'Controls randomness' },
+    max_tokens:       { type:'number', min:1, def:4096,        desc:'Maximum output tokens' },
+    top_p:            { type:'number', min:0, max:1, def:1,    desc:'Nucleus sampling' },
+    top_k:            { type:'number', min:0, def:40,          desc:'Top-K sampling' },
+    frequency_penalty:{ type:'number', min:-2, max:2, def:0,   desc:'Penalize frequent tokens' },
+    presence_penalty: { type:'number', min:-2, max:2, def:0,   desc:'Penalize repeated topics' },
+    stop:             { type:'string', def:'',                  desc:'Stop sequences' },
+    n:                { type:'number', min:1, def:1,           desc:'Completions count' },
+    seed:             { type:'number', def:'',                  desc:'Random seed' },
+    stream:           { type:'boolean', def:false,              desc:'Stream response' },
+    effort:           { type:'enum', values:['none','minimal','low','medium','high','xhigh'], def:'medium', desc:'Reasoning effort' },
+  },
+};
+
+// ═══════════════════════════════════════════════
+// PROVIDER SVG ICONS
+// ═══════════════════════════════════════════════
+
+function ProviderIcon({ id, size = 20 }) {
+  const s = size;
+  switch (id) {
+    case 'openai': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M22.28 14.41a6.12 6.12 0 0 1-.53 5.07 6.2 6.2 0 0 1-6.69 3.01 6.15 6.15 0 0 1-4.6 2.05 6.2 6.2 0 0 1-5.92-4.28 6.12 6.12 0 0 1-4.1-2.98 6.2 6.2 0 0 1 .76-7.27 6.12 6.12 0 0 1 .53-5.07A6.2 6.2 0 0 1 8.42 1.93a6.15 6.15 0 0 1 4.6-2.05 6.2 6.2 0 0 1 5.92 4.28 6.12 6.12 0 0 1 4.1 2.98 6.2 6.2 0 0 1-.76 7.27z" stroke="#10a37f" strokeWidth="1.5" strokeLinejoin="round"/>
+        <path d="M16 8.5l-4 7-4-7" stroke="#10a37f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+    case 'anthropic': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M13.5 3L21 21h-4l-1.5-4h-7L7 21H3L13.5 3z" fill="#e8956a"/>
+        <path d="M10.5 13h5L13 6.5 10.5 13z" fill="var(--bg-raised)"/>
+      </svg>
+    );
+    case 'google': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <circle cx="8" cy="8" r="3.5" fill="#4285f4"/>
+        <circle cx="16" cy="8" r="3.5" fill="#ea4335"/>
+        <circle cx="8" cy="16" r="3.5" fill="#34a853"/>
+        <circle cx="16" cy="16" r="3.5" fill="#fbbc05"/>
+      </svg>
+    );
+    case 'mistral': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="5" width="18" height="3" rx="1.5" fill="#ff7000"/>
+        <rect x="6" y="11" width="12" height="3" rx="1.5" fill="#ff7000" opacity="0.7"/>
+        <rect x="3" y="17" width="18" height="3" rx="1.5" fill="#ff7000" opacity="0.4"/>
+      </svg>
+    );
+    case 'cohere': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M12 3a9 9 0 0 1 0 18" stroke="#39594d" strokeWidth="3" strokeLinecap="round"/>
+        <circle cx="12" cy="12" r="3" fill="#39594d"/>
+      </svg>
+    );
+    case 'bedrock': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" stroke="#ff9900" strokeWidth="1.5" strokeLinejoin="round"/>
+        <path d="M12 7l5 3v6l-5 3-5-3v-6l5-3z" stroke="#ff9900" strokeWidth="1.2" strokeLinejoin="round" opacity="0.5"/>
+        <circle cx="12" cy="12" r="1.5" fill="#ff9900"/>
+      </svg>
+    );
+    case 'openrouter': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <circle cx="5" cy="12" r="2.5" stroke="#818cf8" strokeWidth="1.5"/>
+        <circle cx="19" cy="6" r="2.5" stroke="#818cf8" strokeWidth="1.5"/>
+        <circle cx="19" cy="18" r="2.5" stroke="#818cf8" strokeWidth="1.5"/>
+        <path d="M7.5 11L16.5 7M7.5 13l9 4" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    );
+    case 'vercel': return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M12 3L22 21H2L12 3z" fill="#ededed"/>
+      </svg>
+    );
+    default: return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="#64748b" strokeWidth="1.5"/>
+        <circle cx="12" cy="12" r="2" fill="#64748b"/>
+      </svg>
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════
+
+function detectProviderFromHost(host) {
+  if (!host) return null;
+  const h = host.toLowerCase();
+  if (h.includes('openrouter')) return 'openrouter';
+  if (h.includes('gateway.ai.vercel')) return 'vercel';
+  if (h.includes('amazonaws') || h.includes('bedrock')) return 'bedrock';
+  if (h.includes('openai')) return 'openai';
+  if (h.includes('anthropic') || h.includes('claude')) return 'anthropic';
+  if (h.includes('googleapis') || h.includes('google')) return 'google';
+  if (h.includes('mistral')) return 'mistral';
+  if (h.includes('cohere')) return 'cohere';
+  return null;
+}
+
+function isReasoningModel(model) {
+  const m = (model || '').replace(/^.*\//, '');
+  return /^o[134]/.test(m);
+}
+
+function validateConfig(provider, model, params) {
+  const issues = [];
+  const specs = PARAM_SPECS[provider];
+  if (!specs) return issues;
+
+  for (const [name, value] of Object.entries(params)) {
+    const spec = specs[name];
+    if (!spec) {
+      issues.push({ param: name, severity: 'warning', message: 'Unknown parameter for this provider' });
+      continue;
+    }
+    if (spec.type === 'number') {
+      const str = String(value).trim();
+      if (str === '') continue;
+      const num = parseFloat(str);
+      if (isNaN(num)) {
+        issues.push({ param: name, severity: 'error', message: 'Must be a valid number' });
+      } else {
+        if (spec.min !== undefined && num < spec.min)
+          issues.push({ param: name, severity: 'error', message: `Minimum value is ${spec.min}` });
+        if (spec.max !== undefined && num > spec.max)
+          issues.push({ param: name, severity: 'error', message: `Maximum value is ${spec.max}` });
+      }
+    }
+    if (spec.type === 'enum' && spec.values && value !== '') {
+      if (!spec.values.includes(String(value)))
+        issues.push({ param: name, severity: 'error', message: `Must be one of: ${spec.values.join(', ')}` });
+    }
+  }
+
+  // Anthropic / Bedrock mutual exclusion
+  if ((provider === 'anthropic' || provider === 'bedrock') &&
+       params.temperature !== undefined && params.top_p !== undefined) {
+    issues.push({ param: 'top_p', severity: 'warning', message: 'Cannot use both temperature and top_p' });
+  }
+
+  // Reasoning model restrictions
+  if (model && isReasoningModel(model) && ['openai','openrouter','vercel'].includes(provider)) {
+    for (const p of ['temperature','top_p','frequency_penalty','presence_penalty','n']) {
+      if (params[p] !== undefined)
+        issues.push({ param: p, severity: 'error', message: `Not supported for reasoning model "${model}". Use effort instead.` });
+    }
+  }
+
+  return issues;
+}
+
+// ═══════════════════════════════════════════════
+// COMBOBOX
+// ═══════════════════════════════════════════════
+
+function Combobox({ value, onChange, options, placeholder }) {
+  const [text, setText] = useState(value || '');
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [hl, setHl] = useState(0);
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) setText(value || '');
+  }, [value]);
+
+  const filtered = useMemo(() => {
+    if (!editing || !text) return options;
+    const q = text.toLowerCase();
+    return options.filter(o =>
+      o.label.toLowerCase().includes(q) ||
+      o.value.toLowerCase().includes(q) ||
+      (o.sublabel || '').toLowerCase().includes(q)
+    );
+  }, [text, editing, options]);
+
+  useEffect(() => { setHl(0); }, [filtered.length]);
+
+  useEffect(() => {
+    const handle = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setEditing(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  function select(opt) {
+    setText(opt.label);
+    onChange(opt.value, opt);
+    setOpen(false);
+    setEditing(false);
+  }
+
+  function handleKey(e) {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+      setOpen(true); e.preventDefault(); return;
+    }
+    if (!open) return;
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); setHl(i => Math.min(i + 1, filtered.length - 1)); break;
+      case 'ArrowUp':   e.preventDefault(); setHl(i => Math.max(i - 1, 0)); break;
+      case 'Enter':
+        e.preventDefault();
+        if (filtered[hl]) select(filtered[hl]);
+        else if (text) { onChange(text); setOpen(false); setEditing(false); }
+        break;
+      case 'Escape': setOpen(false); setText(value || ''); setEditing(false); break;
+    }
+  }
+
+  return (
+    <div ref={ref} className="combobox">
+      <div className="combobox-wrap">
+        <input
+          ref={inputRef}
+          className="input"
+          value={text}
+          placeholder={placeholder}
+          autoComplete="off"
+          onFocus={() => { setOpen(true); setEditing(false); inputRef.current?.select(); }}
+          onChange={(e) => { setText(e.target.value); setEditing(true); setOpen(true); }}
+          onKeyDown={handleKey}
+        />
+        <svg className={`combobox-chev${open ? ' open' : ''}`} viewBox="0 0 12 12" width="12" height="12">
+          <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="combobox-dd">
+          {filtered.map((o, i) => (
+            <div
+              key={o.value}
+              className={`cb-opt${i === hl ? ' hl' : ''}`}
+              onMouseEnter={() => setHl(i)}
+              onMouseDown={(e) => { e.preventDefault(); select(o); }}
+            >
+              {o.icon && <span className="cb-opt-icon">{o.icon}</span>}
+              <span className="cb-opt-label">{o.label}</span>
+              {o.sublabel && <span className="cb-opt-sub">{o.sublabel}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// TOGGLE
+// ═══════════════════════════════════════════════
+
+function Toggle({ value, onChange }) {
+  const on = value === true || value === 'true';
+  return (
+    <button className={`toggle${on ? ' on' : ''}`} onClick={() => onChange(!on)} type="button" role="switch" aria-checked={on}>
+      <span className="toggle-thumb"/>
+    </button>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// NUMBER INPUT WITH SLIDER
+// ═══════════════════════════════════════════════
+
+function NumberInput({ spec, value, onChange }) {
+  const hasRange = spec.min !== undefined && spec.max !== undefined;
+  const step = hasRange && (spec.max - spec.min) <= 4 ? 0.01 : 1;
+  return (
+    <div className="num-group">
+      {hasRange && (
+        <div className="slider-wrap">
+          <input type="range" className="slider"
+            min={spec.min} max={spec.max} step={step}
+            value={value === '' ? spec.min : value}
+            onChange={(e) => onChange(parseFloat(e.target.value))}
+          />
+          <div className="slider-labels"><span>{spec.min}</span><span>{spec.max}</span></div>
+        </div>
+      )}
+      <input type="number" className="input"
+        min={spec.min} max={spec.max} step={step}
+        value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={spec.min !== undefined ? `min ${spec.min}` : ''}
+        style={{ width: hasRange ? 80 : 120 }}
+      />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// PARAM ROW
+// ═══════════════════════════════════════════════
+
+function ParamRow({ name, spec, value, onChange, onRemove, issue }) {
+  let input;
+  switch (spec.type) {
+    case 'number':
+      input = <NumberInput spec={spec} value={value} onChange={onChange}/>;
+      break;
+    case 'boolean':
+      input = <Toggle value={value} onChange={onChange}/>;
+      break;
+    case 'enum':
+      input = (
+        <select className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{width:'auto',minWidth:100}}>
+          {(spec.values || []).map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+      );
+      break;
+    default:
+      input = <input className="input" type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder="value" style={{width:'100%'}}/>;
+  }
+
+  return (
+    <div className="param-row">
+      <div className="param-name"><code>{name}</code></div>
+      <div className="param-input">{input}</div>
+      {issue ? (
+        <div className={`param-issue ${issue.severity === 'error' ? 'error' : 'warn'}`} title={issue.message}>
+          {issue.severity === 'error' ? (
+            <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1.5l7 13H1l7-13z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M8 6v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="8" cy="12" r="0.8" fill="currentColor"/></svg>
+          )}
+        </div>
+      ) : <div style={{width:22}}/>}
+      <button className="param-remove" onClick={onRemove} title="Remove">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+      </button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// ADD PARAM BUTTON
+// ═══════════════════════════════════════════════
+
+function AddParamButton({ specs, activeNames, onAdd }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handle = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  const available = Object.entries(specs).filter(([name]) => !activeNames.includes(name));
+  if (available.length === 0) return null;
+
+  return (
+    <div ref={ref} className="add-param">
+      <button className="add-btn" onClick={() => setOpen(!open)} type="button">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+        Add Parameter
+      </button>
+      {open && (
+        <div className="add-dd">
+          {available.map(([name, spec]) => (
+            <button key={name} className="add-opt" onClick={() => { onAdd(name, spec.def); setOpen(false); }}>
+              <span className="add-opt-name">{name}</span>
+              <span className="add-opt-type">{spec.type === 'enum' ? 'enum' : spec.type}</span>
+              <span className="add-opt-desc">{spec.desc}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// CONNECTION STRING PREVIEW
+// ═══════════════════════════════════════════════
+
+function Preview({ label, apiKey, host, model, params, issues }) {
+  const [copied, setCopied] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+
+  const plain = useMemo(() => {
+    let s = 'llm://';
+    if (label) {
+      s += encodeURIComponent(label);
+      if (apiKey) s += ':' + encodeURIComponent(apiKey);
+      s += '@';
+    }
+    s += host || 'provider';
+    s += '/' + (model || 'model');
+    const entries = Object.entries(params).filter(([_, v]) => v !== '' && v !== undefined && v !== null);
+    if (entries.length) s += '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+    return s;
+  }, [label, apiKey, host, model, params]);
+
+  async function handleCopy() {
+    try { await navigator.clipboard.writeText(plain); } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+
+  // Build colored segments
+  const segs = [];
+  segs.push({ t: 'llm://', c: 'protocol', tip: 'Protocol' });
+  if (label) {
+    segs.push({ t: label, c: 'label', tip: 'Label / App name' });
+    if (apiKey) {
+      segs.push({ t: ':', c: 'sep' });
+      segs.push({ t: showKey ? apiKey : '\u2022'.repeat(Math.min(apiKey.length, 10)), c: 'apikey', tip: 'API Key \u2014 click to toggle', click: () => setShowKey(!showKey) });
+    }
+    segs.push({ t: '@', c: 'sep' });
+  }
+  if (host) segs.push({ t: host, c: 'host', tip: 'Provider hostname' });
+  else segs.push({ t: '\u2039provider\u203a', c: 'placeholder' });
+  segs.push({ t: '/', c: 'sep' });
+  if (model) segs.push({ t: model, c: 'model', tip: 'Model identifier' });
+  else segs.push({ t: '\u2039model\u203a', c: 'placeholder' });
+
+  const entries = Object.entries(params).filter(([_, v]) => v !== '' && v !== undefined && v !== null);
+  if (entries.length) {
+    segs.push({ t: '?', c: 'sep' });
+    entries.forEach(([k, v], i) => {
+      if (i > 0) segs.push({ t: '&', c: 'sep' });
+      segs.push({ t: k, c: 'param-name', tip: `Parameter: ${k}` });
+      segs.push({ t: '=', c: 'sep' });
+      segs.push({ t: String(v), c: 'param-value', tip: `Value: ${v}` });
+    });
+  }
+
+  const errs = issues.filter(i => i.severity === 'error').length;
+  const warns = issues.filter(i => i.severity === 'warning').length;
+  const valid = host && model && errs === 0 && warns === 0;
+
+  return (
+    <div className="preview-card">
+      <div className="preview-head">
+        <span className="preview-title">Connection String</span>
+        <div className="preview-badges">
+          {valid && <span className="badge badge-ok">{'\u2713'} Valid</span>}
+          {errs > 0 && <span className="badge badge-err">{errs} error{errs > 1 ? 's' : ''}</span>}
+          {warns > 0 && <span className="badge badge-warn">{warns} warning{warns > 1 ? 's' : ''}</span>}
+        </div>
+      </div>
+      <div className="preview-body" onClick={handleCopy} tabIndex={0} role="button" aria-label="Click to copy">
+        <code className="preview-code">
+          {segs.map((s, i) => (
+            <span key={i} className={`syn-${s.c}`} title={s.tip || undefined}
+              onClick={s.click ? (e) => { e.stopPropagation(); s.click(); } : undefined}
+              style={s.click ? { cursor: 'pointer' } : undefined}
+            >{s.t}</span>
+          ))}
+        </code>
+        <div className={`preview-hint${copied ? ' copied' : ''}`}>
+          {copied ? '\u2713 Copied!' : 'Click to copy'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════
+
+function App() {
+  const [provider, setProvider] = useState(null);
+  const [host, setHost] = useState('');
+  const [model, setModel] = useState('');
+  const [label, setLabel] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [activeParams, setActiveParams] = useState({});
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState('');
+
+  const currentProvider = provider || detectProviderFromHost(host);
+  const specs = PARAM_SPECS[currentProvider] || {};
+
+  const providerOpts = PROVIDERS.map(p => ({
+    value: p.id, label: p.name, sublabel: p.host,
+    icon: <ProviderIcon id={p.id}/>,
+  }));
+
+  const modelOpts = (MODELS[currentProvider] || []).map(m => ({ value: m, label: m }));
+
+  const providerDisplay = useMemo(() => {
+    const p = PROVIDERS.find(p => p.id === provider);
+    return p ? p.name : host || '';
+  }, [provider, host]);
+
+  const issues = useMemo(() => validateConfig(currentProvider, model, activeParams), [currentProvider, model, activeParams]);
+  const issueMap = useMemo(() => {
+    const m = {};
+    issues.forEach(i => { if (!m[i.param]) m[i.param] = i; });
+    return m;
+  }, [issues]);
+
+  function handleProviderChange(val) {
+    const prov = PROVIDERS.find(p => p.id === val);
+    if (prov) {
+      setProvider(prov.id);
+      setHost(prov.host);
+      setModel('');
+      const newSpecs = PARAM_SPECS[prov.id] || {};
+      setActiveParams(prev => {
+        const keep = {};
+        for (const [k, v] of Object.entries(prev)) { if (newSpecs[k]) keep[k] = v; }
+        return keep;
+      });
+    } else {
+      setProvider(null);
+      setHost(val);
+    }
+  }
+
+  function handleImport(text) {
+    setImportText(text);
+    try {
+      const url = new URL(text);
+      if (url.protocol !== 'llm:') return;
+      const h = url.hostname + (url.port ? ':' + url.port : '');
+      setHost(h);
+      setModel(decodeURIComponent(url.pathname.replace(/^\//, '')));
+      setLabel(decodeURIComponent(url.username || ''));
+      setApiKey(decodeURIComponent(url.password || ''));
+      const p = {};
+      url.searchParams.forEach((v, k) => { p[k] = v; });
+      setActiveParams(p);
+      const det = detectProviderFromHost(h);
+      setProvider(det);
+      setShowImport(false);
+      setImportText('');
+    } catch {}
+  }
+
+  const providerColor = PROVIDERS.find(p => p.id === currentProvider)?.color;
+
+  return (
+    <div className="app">
+      <header className="header">
+        <h1>LLM String Builder</h1>
+        <p className="sub">Configure and preview your LLM connection strings</p>
+      </header>
+
+      <Preview label={label} apiKey={apiKey} host={host} model={model} params={activeParams} issues={issues}/>
+
+      <div className="import-row">
+        {showImport ? (
+          <>
+            <input className="input import-input" placeholder="Paste llm:// connection string..."
+              value={importText} onChange={(e) => handleImport(e.target.value)} autoFocus/>
+            <button className="import-btn" onClick={() => { setShowImport(false); setImportText(''); }}>Cancel</button>
+          </>
+        ) : (
+          <button className="import-btn" onClick={() => setShowImport(true)}>
+            <svg width="12" height="12" viewBox="0 0 12 12" style={{marginRight:4,verticalAlign:-1}}>
+              <path d="M6 1v8M2 5l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Import existing string
+          </button>
+        )}
+      </div>
+
+      {/* Provider & Model */}
+      <div className="card" style={providerColor ? {borderTopColor: providerColor + '40'} : undefined}>
+        <div className="card-title">
+          {currentProvider && <ProviderIcon id={currentProvider} size={16}/>}
+          Provider & Model
+        </div>
+        <div className="form-row">
+          <div className="form-field">
+            <label className="field-label">Provider</label>
+            <Combobox value={providerDisplay} onChange={handleProviderChange}
+              options={providerOpts} placeholder="Select provider..."/>
+          </div>
+          <div className="form-field">
+            <label className="field-label">Model</label>
+            <Combobox value={model} onChange={(val) => setModel(val)}
+              options={modelOpts} placeholder="Select or type model..."/>
+          </div>
+        </div>
+      </div>
+
+      {/* Identity */}
+      <div className="card">
+        <div className="card-title">Identity <span className="card-opt">optional</span></div>
+        <div className="form-row">
+          <div className="form-field">
+            <label className="field-label">Label</label>
+            <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="App name"/>
+          </div>
+          <div className="form-field">
+            <label className="field-label">API Key</label>
+            <div className="apikey-wrap">
+              <input className="input" type={showApiKey ? 'text' : 'password'}
+                value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..."/>
+              <button className="apikey-toggle" onClick={() => setShowApiKey(!showApiKey)} type="button" title={showApiKey ? 'Hide' : 'Show'}>
+                {showApiKey ? (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+                    <path d="M2 2l12 12"/><path d="M6.5 6.5a2.1 2.1 0 003 3"/><path d="M3.5 5.5C2.2 6.6 1.3 8 1.3 8s2.5 5 6.7 5c.8 0 1.6-.2 2.3-.5"/><path d="M12.5 10.5c1.3-1.1 2.2-2.5 2.2-2.5s-2.5-5-6.7-5c-.8 0-1.6.2-2.3.5"/>
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+                    <path d="M1.3 8s2.5-5 6.7-5 6.7 5 6.7 5-2.5 5-6.7 5S1.3 8 1.3 8z"/><circle cx="8" cy="8" r="2"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Parameters */}
+      <div className="card">
+        <div className="card-title">Parameters</div>
+        {Object.keys(activeParams).length === 0 && (
+          <div className="params-empty">No parameters added yet. Click below to add one.</div>
+        )}
+        {Object.entries(activeParams).map(([name, value]) => (
+          <ParamRow key={name} name={name} spec={specs[name] || { type: 'string', def: '' }}
+            value={value}
+            onChange={(v) => setActiveParams(p => ({ ...p, [name]: v }))}
+            onRemove={() => setActiveParams(p => { const c = { ...p }; delete c[name]; return c; })}
+            issue={issueMap[name]}
+          />
+        ))}
+        <AddParamButton specs={specs} activeNames={Object.keys(activeParams)}
+          onAdd={(name, def) => setActiveParams(p => ({ ...p, [name]: def }))}
+        />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

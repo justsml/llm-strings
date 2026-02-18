@@ -7,5 +7,23 @@ export type { NormalizeChange, NormalizeOptions, NormalizeResult } from "./norma
 export { validate } from "./validate.js";
 export type { ValidateOptions, ValidationIssue } from "./validate.js";
 
-export { detectProvider, detectBedrockModelFamily, ALIASES, PROVIDER_PARAMS } from "./providers.js";
-export type { Provider, BedrockModelFamily } from "./providers.js";
+export {
+  detectProvider,
+  detectBedrockModelFamily,
+  isReasoningModel,
+  canHostOpenAIModels,
+  ALIASES,
+  PROVIDER_PARAMS,
+  PARAM_SPECS,
+  REASONING_MODEL_UNSUPPORTED,
+  PROVIDER_META,
+  MODELS,
+  CANONICAL_PARAM_SPECS,
+} from "./providers.js";
+export type {
+  Provider,
+  BedrockModelFamily,
+  ParamSpec,
+  ProviderMeta,
+  CanonicalParamSpec,
+} from "./providers.js";

@@ -1,6 +1,6 @@
 {
   "name": "llm-strings",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Parse and build LLM connection strings — like database URLs, but for LLM APIs",
   "type": "module",
   "main": "./dist/index.cjs",
