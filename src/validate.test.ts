@@ -268,6 +268,52 @@ describe("validate", () => {
     });
   });
 
+  describe("gateway sub-provider validation", () => {
+    it("validates against Anthropic specs via OpenRouter (temp > 1 rejected)", () => {
+      const issues = validate(
+        "llm://openrouter.ai/anthropic/claude-sonnet-4-5?temp=1.5",
+      );
+      expect(issues).toHaveLength(1);
+      expect(issues[0].message).toContain("<= 1");
+    });
+
+    it("rejects both temperature and top_p for Anthropic via gateway", () => {
+      const issues = validate(
+        "llm://openrouter.ai/anthropic/claude-sonnet-4-5?temp=0.7&top_p=0.9",
+      );
+      expect(issues.some((i) => i.message.includes("Cannot specify both"))).toBe(true);
+    });
+
+    it("falls back to gateway specs for unknown sub-provider", () => {
+      const issues = validate(
+        "llm://openrouter.ai/qwen/qwen2.5-pro?temp=1.5",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("validates against Google specs via Vercel (temp 1.5 is valid)", () => {
+      const issues = validate(
+        "llm://gateway.ai.vercel.sh/google/gemini-2.5-pro?temp=1.5",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("validates Anthropic effort values via gateway", () => {
+      const issues = validate(
+        "llm://openrouter.ai/anthropic/claude-sonnet-4-5?effort=high",
+      );
+      expect(issues).toEqual([]);
+    });
+
+    it("rejects OpenAI-only effort values for Anthropic via gateway", () => {
+      const issues = validate(
+        "llm://openrouter.ai/anthropic/claude-sonnet-4-5?effort=xhigh",
+      );
+      expect(issues).toHaveLength(1);
+      expect(issues[0].message).toContain("must be one of");
+    });
+  });
+
   describe("unknown provider", () => {
     it("returns a warning and skips validation", () => {
       const issues = validate("llm://custom-api.com/my-model?temp=999");

@@ -6,6 +6,8 @@ import {
   PARAM_SPECS,
   PROVIDER_PARAMS,
   detectProvider,
+  detectGatewaySubProvider,
+  isGatewayProvider,
 } from "./providers.js";
 import type { Provider } from "./providers.js";
 
@@ -123,5 +125,58 @@ describe("CANONICAL_PARAM_SPECS", () => {
         }
       }
     }
+  });
+});
+
+describe("PARAM_SPECS defaults and descriptions", () => {
+  it("every spec has a description", () => {
+    for (const p of ALL_PROVIDERS) {
+      for (const [name, spec] of Object.entries(PARAM_SPECS[p])) {
+        expect(
+          spec.description,
+          `${p}.${name} missing description`,
+        ).toBeTruthy();
+      }
+    }
+  });
+});
+
+describe("isGatewayProvider", () => {
+  it("returns true for openrouter and vercel", () => {
+    expect(isGatewayProvider("openrouter")).toBe(true);
+    expect(isGatewayProvider("vercel")).toBe(true);
+  });
+
+  it("returns false for direct providers", () => {
+    expect(isGatewayProvider("openai")).toBe(false);
+    expect(isGatewayProvider("anthropic")).toBe(false);
+    expect(isGatewayProvider("google")).toBe(false);
+    expect(isGatewayProvider("bedrock")).toBe(false);
+  });
+});
+
+describe("detectGatewaySubProvider", () => {
+  it("detects known sub-providers from model prefix", () => {
+    expect(detectGatewaySubProvider("openai/gpt-5.2")).toBe("openai");
+    expect(detectGatewaySubProvider("anthropic/claude-sonnet-4-5")).toBe("anthropic");
+    expect(detectGatewaySubProvider("google/gemini-2.5-pro")).toBe("google");
+    expect(detectGatewaySubProvider("mistral/mistral-large-latest")).toBe("mistral");
+    expect(detectGatewaySubProvider("cohere/command-r-plus")).toBe("cohere");
+  });
+
+  it("returns undefined for unknown sub-providers", () => {
+    expect(detectGatewaySubProvider("qwen/qwen2.5-pro")).toBeUndefined();
+    expect(detectGatewaySubProvider("deepseek/deepseek-v3")).toBeUndefined();
+  });
+
+  it("returns undefined for models without a slash", () => {
+    expect(detectGatewaySubProvider("gpt-5.2")).toBeUndefined();
+    expect(detectGatewaySubProvider("claude-sonnet-4-5")).toBeUndefined();
+  });
+
+  it("does not match gateways as sub-providers", () => {
+    expect(detectGatewaySubProvider("openrouter/some-model")).toBeUndefined();
+    expect(detectGatewaySubProvider("vercel/some-model")).toBeUndefined();
+    expect(detectGatewaySubProvider("bedrock/some-model")).toBeUndefined();
   });
 });

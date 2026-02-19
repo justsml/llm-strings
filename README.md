@@ -289,7 +289,7 @@ const issues = validate("llm://openrouter.ai/openai/o3?temp=0.7");
 | Cohere      | `api.cohere.com`                         | snake_case  |
 | AWS Bedrock | `bedrock-runtime.{region}.amazonaws.com` | camelCase   |
 | OpenRouter  | `openrouter.ai`                          | snake_case  |
-| Vercel AI   | `gateway.ai.vercel.sh`                   | snake_case  |
+| Vercel AI   | `gateway.ai.vercel.app`                  | snake_case  |
 
 Gateways like OpenRouter and Vercel route to any upstream provider. Bedrock hosts models from multiple families (Anthropic, Meta, Amazon, Mistral, Cohere, AI21) with cross-region inference support. Each provider's parameter names differ — normalization handles the translation automatically.
 
@@ -297,17 +297,32 @@ Gateways like OpenRouter and Vercel route to any upstream provider. Bedrock host
 
 Use these shortcuts in your connection strings — they expand automatically during normalization:
 
-| Shorthand                                  | Canonical            |
-| ------------------------------------------ | -------------------- |
-| `temp`                                     | `temperature`        |
-| `max`, `max_out`, `maxTokens`              | `max_tokens`         |
-| `topp`, `topP`, `nucleus`                  | `top_p`              |
-| `topk`, `topK`                             | `top_k`              |
-| `freq`, `freq_penalty`                     | `frequency_penalty`  |
-| `pres`, `pres_penalty`                     | `presence_penalty`   |
-| `stop_sequences`, `stopSequences`          | `stop`               |
-| `reasoning`, `reasoning_effort`            | `effort`             |
-| `cache_control`, `cacheControl`            | `cache`              |
+| Shorthand                                                            | Canonical            |
+| -------------------------------------------------------------------- | -------------------- |
+| `temp`                                                               | `temperature`        |
+| `max`, `max_out`, `max_output`, `max_output_tokens`, `maxTokens`, `maxOutputTokens`, `max_completion_tokens` | `max_tokens`         |
+| `topp`, `topP`, `nucleus`                                            | `top_p`              |
+| `topk`, `topK`                                                       | `top_k`              |
+| `freq`, `freq_penalty`, `frequencyPenalty`, `repetition_penalty`     | `frequency_penalty`  |
+| `pres`, `pres_penalty`, `presencePenalty`                            | `presence_penalty`   |
+| `stop_sequences`, `stopSequences`, `stop_sequence`                   | `stop`               |
+| `random_seed`, `randomSeed`                                          | `seed`               |
+| `candidateCount`, `candidate_count`, `num_completions`               | `n`                  |
+| `reasoning`, `reasoning_effort`                                      | `effort`             |
+| `cache_control`, `cacheControl`, `cachePoint`, `cache_point`         | `cache`              |
+
+## Sub-path Imports
+
+For smaller bundles, import only what you need:
+
+```ts
+import { parse, build } from "llm-strings/parse";
+import { normalize } from "llm-strings/normalize";
+import { validate } from "llm-strings/validate";
+import { detectProvider, ALIASES, PROVIDER_PARAMS, PARAM_SPECS } from "llm-strings/providers";
+```
+
+All sub-paths ship ESM + CJS with full type declarations.
 
 ## API Reference
 
@@ -355,6 +370,38 @@ Identifies the provider from a hostname string.
 
 Identifies the model family (anthropic, meta, amazon, mistral, cohere, ai21) from a Bedrock model ID. Handles cross-region (`us.`, `eu.`, `apac.`) and global inference profiles.
 
+### `detectGatewaySubProvider(model): Provider | undefined`
+
+Extracts the underlying provider from a gateway model string (e.g. `"anthropic/claude-sonnet-4-5"` → `"anthropic"`). Returns `undefined` for unknown prefixes or models without a `/`.
+
+### `isReasoningModel(model): boolean`
+
+Returns `true` for OpenAI reasoning models (o1, o3, o4 families). Handles gateway prefixes like `"openai/o3"`.
+
+### `isGatewayProvider(provider): boolean`
+
+Returns `true` for gateway providers (`openrouter`, `vercel`) that proxy to other providers.
+
+### `canHostOpenAIModels(provider): boolean`
+
+Returns `true` for providers that can route to OpenAI models and need reasoning-model checks (`openai`, `openrouter`, `vercel`).
+
+### `bedrockSupportsCaching(model): boolean`
+
+Returns `true` if the Bedrock model supports prompt caching (Claude and Nova models only).
+
+### Constants
+
+| Export | Description |
+| --- | --- |
+| `ALIASES` | Shorthand → canonical param name mapping |
+| `PROVIDER_PARAMS` | Canonical → provider-specific param names, per provider |
+| `PARAM_SPECS` | Validation rules (type, min/max, enum) per provider, keyed by provider-specific param name |
+| `REASONING_MODEL_UNSUPPORTED` | Set of canonical params unsupported by reasoning models |
+| `PROVIDER_META` | Array of provider metadata (id, name, host, brand color) for UI integrations |
+| `MODELS` | Suggested model IDs per provider |
+| `CANONICAL_PARAM_SPECS` | Canonical param specs per provider with descriptions — useful for building UIs |
+
 ## TypeScript
 
 Full type definitions ship with the package:
@@ -369,7 +416,35 @@ import type {
   ValidationIssue,
   Provider,
   BedrockModelFamily,
+  ParamSpec,
+  ProviderMeta,
+  CanonicalParamSpec,
 } from "llm-strings";
+```
+
+## Provider Metadata (for UI integrations)
+
+The library exports metadata useful for building UIs — provider names, brand colors, suggested models, and canonical parameter specs:
+
+```ts
+import { PROVIDER_META, MODELS, CANONICAL_PARAM_SPECS } from "llm-strings";
+
+// Provider display info
+PROVIDER_META.forEach((p) => console.log(`${p.name}: ${p.host} (${p.color})`));
+// OpenAI: api.openai.com (#10a37f)
+// Anthropic: api.anthropic.com (#e8956a)
+// ...
+
+// Suggested models per provider
+MODELS.openai;    // → ["gpt-5.2", "gpt-5.2-pro", "gpt-4.1", "gpt-4.1-mini", ...]
+MODELS.anthropic; // → ["claude-opus-4-6", "claude-sonnet-4-6", "claude-sonnet-4-5", ...]
+
+// Canonical param specs — useful for building config forms
+CANONICAL_PARAM_SPECS.openai.temperature;
+// → { type: "number", min: 0, max: 2, default: 0.7, description: "Controls randomness" }
+
+CANONICAL_PARAM_SPECS.anthropic.effort;
+// → { type: "enum", values: ["low", "medium", "high", "max"], default: "medium", description: "Thinking effort" }
 ```
 
 ## Contributing

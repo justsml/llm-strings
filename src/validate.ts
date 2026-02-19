@@ -8,7 +8,9 @@ import {
   canHostOpenAIModels,
   detectBedrockModelFamily,
   isReasoningModel,
-} from "./providers.js";
+  type ParamSpec,
+  type Provider,
+} from "./provider-core.js";
 
 export interface ValidationIssue {
   param: string;
@@ -23,9 +25,62 @@ export interface ValidateOptions {
 }
 
 /**
+ * Build a reverse map from provider-specific param names back to canonical names.
+ */
+function buildReverseParamMap(
+  provider: Provider,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [canonical, specific] of Object.entries(
+    PROVIDER_PARAMS[provider],
+  )) {
+    map[specific] = canonical;
+  }
+  return map;
+}
+
+/**
+ * Look up a sub-provider's ParamSpec for a gateway-normalized param name.
+ * Maps: gateway param → canonical → sub-provider-specific → spec.
+ */
+function lookupSubProviderSpec(
+  gatewayParamName: string,
+  gatewayReverseMap: Record<string, string>,
+  subProvider: Provider,
+) {
+  const canonical = gatewayReverseMap[gatewayParamName] ?? gatewayParamName;
+  const subProviderKey = PROVIDER_PARAMS[subProvider]?.[canonical];
+  if (!subProviderKey) return { spec: undefined, canonical };
+  return { spec: PARAM_SPECS[subProvider]?.[subProviderKey], canonical };
+}
+
+/**
+ * Build the set of gateway param names that correspond to params the sub-provider supports.
+ */
+function buildSubProviderKnownParams(
+  gateway: Provider,
+  subProvider: Provider,
+): Set<string> {
+  const known = new Set<string>();
+  const subProviderCanonicals = new Set(
+    Object.keys(PROVIDER_PARAMS[subProvider]),
+  );
+  for (const [canonical, gatewaySpecific] of Object.entries(
+    PROVIDER_PARAMS[gateway],
+  )) {
+    if (subProviderCanonicals.has(canonical)) {
+      known.add(gatewaySpecific);
+    }
+  }
+  return known;
+}
+
+/**
  * Validate an LLM connection string.
  *
  * Parses and normalizes the string, then checks params against provider specs.
+ * For gateway providers (OpenRouter, Vercel), detects the sub-provider from the
+ * model prefix and validates against the sub-provider's rules when known.
  * Returns a list of issues found. An empty array means all params look valid.
  */
 export function validate(
@@ -33,7 +88,7 @@ export function validate(
   options: ValidateOptions = {},
 ): ValidationIssue[] {
   const parsed = parse(connectionString);
-  const { config, provider } = normalize(parsed);
+  const { config, provider, subProvider } = normalize(parsed);
   const issues: ValidationIssue[] = [];
 
   if (!provider) {
@@ -46,8 +101,18 @@ export function validate(
     return issues;
   }
 
-  const specs = PARAM_SPECS[provider];
-  const knownParams = new Set(Object.values(PROVIDER_PARAMS[provider]));
+  // When routing through a gateway to a known sub-provider, validate against
+  // the sub-provider's specs. Fall back to the gateway's loose specs otherwise.
+  const effectiveProvider = subProvider ?? provider;
+  const specs = PARAM_SPECS[effectiveProvider];
+
+  const gatewayReverseMap = subProvider
+    ? buildReverseParamMap(provider)
+    : undefined;
+
+  const knownParams = subProvider
+    ? buildSubProviderKnownParams(provider, subProvider)
+    : new Set(Object.values(PROVIDER_PARAMS[provider]));
 
   for (const [key, value] of Object.entries(config.params)) {
     // Check for OpenAI reasoning model restrictions (direct or via gateway)
@@ -98,24 +163,33 @@ export function validate(
       }
     }
 
-    // Check if param is known for this provider
+    // Check if param is known for this provider (or sub-provider)
     if (!knownParams.has(key) && !specs[key]) {
       issues.push({
         param: key,
         value,
-        message: `Unknown param "${key}" for ${provider}.`,
+        message: `Unknown param "${key}" for ${effectiveProvider}.`,
         severity: options.strict ? "error" : "warning",
       });
       continue;
     }
 
-    // Validate against spec
-    const spec = specs[key];
+    // Look up the spec — for gateways with a sub-provider, map through
+    // canonical names to find the sub-provider's spec
+    let spec: ParamSpec | undefined = specs[key];
+    if (subProvider && gatewayReverseMap && !spec) {
+      const result = lookupSubProviderSpec(
+        key,
+        gatewayReverseMap,
+        subProvider,
+      );
+      spec = result.spec;
+    }
     if (!spec) continue;
 
-    // Anthropic (and Bedrock Claude) mutual exclusion for temperature/top_p
+    // Anthropic (and Bedrock Claude, and Anthropic via gateway) mutual exclusion for temperature/top_p
     if (
-      (provider === "anthropic" ||
+      (effectiveProvider === "anthropic" ||
         (provider === "bedrock" &&
           detectBedrockModelFamily(config.model) === "anthropic")) &&
       (key === "temperature" || key === "top_p" || key === "topP")

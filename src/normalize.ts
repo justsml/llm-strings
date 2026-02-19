@@ -7,10 +7,12 @@ import {
   PROVIDER_PARAMS,
   bedrockSupportsCaching,
   canHostOpenAIModels,
+  detectGatewaySubProvider,
   detectProvider,
+  isGatewayProvider,
   isReasoningModel,
   type Provider,
-} from "./providers.js";
+} from "./provider-core.js";
 
 export interface NormalizeChange {
   from: string;
@@ -22,6 +24,8 @@ export interface NormalizeChange {
 export interface NormalizeResult {
   config: LlmConnectionConfig;
   provider: Provider | undefined;
+  /** Underlying provider extracted from gateway model prefix (e.g. "anthropic" from "anthropic/claude-sonnet-4-5"). */
+  subProvider: Provider | undefined;
   changes: NormalizeChange[];
 }
 
@@ -45,6 +49,10 @@ export function normalize(
   options: NormalizeOptions = {},
 ): NormalizeResult {
   const provider = detectProvider(config.host);
+  const subProvider =
+    provider && isGatewayProvider(provider)
+      ? detectGatewaySubProvider(config.model)
+      : undefined;
   const changes: NormalizeChange[] = [];
   const params: Record<string, string> = {};
 
@@ -160,6 +168,7 @@ export function normalize(
   return {
     config: { ...config, params },
     provider,
+    subProvider,
     changes,
   };
 }

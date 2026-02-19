@@ -10,20 +10,27 @@ export type { ValidateOptions, ValidationIssue } from "./validate.js";
 export {
   detectProvider,
   detectBedrockModelFamily,
+  detectGatewaySubProvider,
   isReasoningModel,
+  isGatewayProvider,
   canHostOpenAIModels,
   ALIASES,
   PROVIDER_PARAMS,
   PARAM_SPECS,
   REASONING_MODEL_UNSUPPORTED,
-  PROVIDER_META,
-  MODELS,
-  CANONICAL_PARAM_SPECS,
-} from "./providers.js";
+} from "./provider-core.js";
 export type {
   Provider,
   BedrockModelFamily,
   ParamSpec,
+} from "./provider-core.js";
+
+export {
+  PROVIDER_META,
+  MODELS,
+  CANONICAL_PARAM_SPECS,
+} from "./provider-meta.js";
+export type {
   ProviderMeta,
   CanonicalParamSpec,
-} from "./providers.js";
+} from "./provider-meta.js";

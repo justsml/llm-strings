@@ -228,8 +228,9 @@ describe("normalize", () => {
       const config = parse(
         "llm://openrouter.ai/anthropic/claude-sonnet-4-5?temp=0.7&max=2000",
       );
-      const { config: result, provider } = normalize(config);
+      const { config: result, provider, subProvider } = normalize(config);
       expect(provider).toBe("openrouter");
+      expect(subProvider).toBe("anthropic");
       expect(result.params).toEqual({
         temperature: "0.7",
         max_tokens: "2000",
@@ -266,8 +267,9 @@ describe("normalize", () => {
       const config = parse(
         "llm://gateway.ai.vercel.sh/openai/gpt-5.2?temp=0.7&max=1500&top_p=0.9",
       );
-      const { config: result, provider } = normalize(config);
+      const { config: result, provider, subProvider } = normalize(config);
       expect(provider).toBe("vercel");
+      expect(subProvider).toBe("openai");
       expect(result.params).toEqual({
         temperature: "0.7",
         max_tokens: "1500",
@@ -279,8 +281,17 @@ describe("normalize", () => {
       const config = parse(
         "llm://gateway.ai.vercel.sh/anthropic/claude-sonnet-4-5?topk=40",
       );
-      const { config: result } = normalize(config);
+      const { config: result, subProvider } = normalize(config);
+      expect(subProvider).toBe("anthropic");
       expect(result.params).toEqual({ top_k: "40" });
+    });
+
+    it("returns undefined subProvider for unknown prefix", () => {
+      const config = parse(
+        "llm://gateway.ai.vercel.sh/qwen/qwen2.5-pro?temp=0.7",
+      );
+      const { subProvider } = normalize(config);
+      expect(subProvider).toBeUndefined();
     });
   });
 

@@ -1,8 +1,9 @@
 {
   "name": "llm-strings",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Parse and build LLM connection strings — like database URLs, but for LLM APIs",
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +16,36 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./parse": {
+      "import": {
+        "types": "./dist/parse.d.ts",
+        "default": "./dist/parse.js"
+      },
+      "require": {
+        "types": "./dist/parse.d.cts",
+        "default": "./dist/parse.cjs"
+      }
+    },
+    "./normalize": {
+      "import": {
+        "types": "./dist/normalize.d.ts",
+        "default": "./dist/normalize.js"
+      },
+      "require": {
+        "types": "./dist/normalize.d.cts",
+        "default": "./dist/normalize.cjs"
+      }
+    },
+    "./validate": {
+      "import": {
+        "types": "./dist/validate.d.ts",
+        "default": "./dist/validate.js"
+      },
+      "require": {
+        "types": "./dist/validate.d.cts",
+        "default": "./dist/validate.cjs"
       }
     },
     "./providers": {
@@ -58,6 +89,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.0",
     "prettier": "^3.0.0",
     "tsup": "^8.0.0",
