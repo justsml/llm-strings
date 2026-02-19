@@ -247,7 +247,8 @@ const url = build({
 ### AWS Bedrock with cross-region inference
 
 ```ts
-import { parse, normalize, detectBedrockModelFamily } from "llm-strings";
+import { parse, normalize } from "llm-strings";
+import { detectBedrockModelFamily } from "llm-strings/providers";
 
 const config = parse(
   "llm://bedrock-runtime.us-east-1.amazonaws.com/us.anthropic.claude-sonnet-4-5-20250929-v1:0?temp=0.5&max=4096"
@@ -407,6 +408,7 @@ Returns `true` if the Bedrock model supports prompt caching (Claude and Nova mod
 Full type definitions ship with the package:
 
 ```ts
+// Core types from the main entry
 import type {
   LlmConnectionConfig,
   NormalizeResult,
@@ -414,12 +416,16 @@ import type {
   NormalizeOptions,
   ValidateOptions,
   ValidationIssue,
+} from "llm-strings";
+
+// Provider types from the providers sub-path
+import type {
   Provider,
   BedrockModelFamily,
   ParamSpec,
   ProviderMeta,
   CanonicalParamSpec,
-} from "llm-strings";
+} from "llm-strings/providers";
 ```
 
 ## Provider Metadata (for UI integrations)
@@ -427,7 +433,7 @@ import type {
 The library exports metadata useful for building UIs — provider names, brand colors, suggested models, and canonical parameter specs:
 
 ```ts
-import { PROVIDER_META, MODELS, CANONICAL_PARAM_SPECS } from "llm-strings";
+import { PROVIDER_META, MODELS, CANONICAL_PARAM_SPECS } from "llm-strings/providers";
 
 // Provider display info
 PROVIDER_META.forEach((p) => console.log(`${p.name}: ${p.host} (${p.color})`));
