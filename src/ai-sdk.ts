@@ -289,19 +289,24 @@ function addGoogleOption(
   if (
     key === "thinking_budget" ||
     key === "thinking_level" ||
-    key === "include_thoughts"
+    key === "include_thoughts" ||
+    key === "thinkingBudget" ||
+    key === "thinkingLevel" ||
+    key === "includeThoughts"
   ) {
     const current = options[target]?.thinkingConfig;
     const thinkingConfig: Record<string, unknown> =
       current && typeof current === "object" && !Array.isArray(current)
         ? { ...current }
         : {};
-    if (key === "thinking_budget") {
+    if (key === "thinking_budget" || key === "thinkingBudget") {
       const parsed = parseNumber(value);
       if (parsed !== undefined) thinkingConfig.thinkingBudget = parsed;
     }
-    if (key === "thinking_level") thinkingConfig.thinkingLevel = value;
-    if (key === "include_thoughts") {
+    if (key === "thinking_level" || key === "thinkingLevel") {
+      thinkingConfig.thinkingLevel = value;
+    }
+    if (key === "include_thoughts" || key === "includeThoughts") {
       const parsed = parseBoolean(value);
       if (parsed !== undefined) thinkingConfig.includeThoughts = parsed;
     }

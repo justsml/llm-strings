@@ -2,6 +2,20 @@ import { describe, expect, it } from "vitest";
 import { validate } from "./validate.js";
 
 describe("validate", () => {
+  it("applies current GPT-6 Astra reasoning effort levels", () => {
+    expect(validate("llm://openai/gpt-6-astra?effort=low")).toEqual([]);
+    expect(validate("llm://openai/gpt-6-astra?effort=none")).toEqual([
+      expect.objectContaining({ param: "reasoning_effort", severity: "error" }),
+    ]);
+  });
+
+  it("rejects minimal thinking for Gemini 3.8 Flash", () => {
+    expect(validate("llm://google/gemini-3.8-flash?effort=medium")).toEqual([]);
+    expect(validate("llm://google/gemini-3.8-flash?effort=minimal")).toEqual([
+      expect.objectContaining({ param: "thinkingLevel", severity: "error" }),
+    ]);
+  });
+
   it("validates structured OpenAI-compatible arguments as JSON", () => {
     expect(
       validate(

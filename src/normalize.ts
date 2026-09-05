@@ -11,6 +11,7 @@ import {
   detectProvider,
   isGatewayProvider,
   isReasoningModel,
+  modelMatchesFamily,
   providerFromHostAlias,
   type Provider,
 } from "./provider-core.js";
@@ -166,11 +167,15 @@ export function normalize(
       key = "max_completion_tokens";
     }
 
+    const isGpt6AstraUnsupported =
+      modelMatchesFamily(config.model, "gpt-6-astra") &&
+      (key === "top_logprobs" || key === "logprobs");
+
     if (
       provider &&
       canHostOpenAIModels(provider) &&
       isReasoningModel(config.model) &&
-      REASONING_MODEL_UNSUPPORTED.has(key)
+      (REASONING_MODEL_UNSUPPORTED.has(key) || isGpt6AstraUnsupported)
     ) {
       if (options.verbose) {
         changes.push({

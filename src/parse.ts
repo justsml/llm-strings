@@ -8,7 +8,7 @@ export interface LlmConnectionConfig {
   host: string;
   /** Short provider alias that was expanded to host, if any. */
   hostAlias?: HostAlias;
-  /** Model name (e.g. "gpt-5.6-sol") */
+  /** Model name (e.g. "gpt-6-astra") */
   model: string;
   /** Optional label or app name */
   label?: string;
@@ -25,7 +25,7 @@ export interface LlmConnectionConfig {
  *
  * @example
  * ```ts
- * parse("llm://api.openai.com/gpt-5.6-sol?effort=medium&max_tokens=1500")
+ * parse("llm://api.openai.com/gpt-6-astra?effort=medium&max_tokens=1500")
  * parse("llm://app-name:sk-ant-123456@api.anthropic.com/claude-sonnet-5?cache=5m")
  * ```
  */

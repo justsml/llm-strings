@@ -216,6 +216,14 @@ describe("normalize", () => {
       });
     });
 
+    it("drops GPT-6 Astra log-probability params", () => {
+      const config = parse(
+        "llm://openai/gpt-6-astra?effort=high&top_logprobs=5&logprobs=true",
+      );
+      const { config: result } = normalize(config);
+      expect(result.params).toEqual({ reasoning_effort: "high" });
+    });
+
     it("applies reasoning rules to suffixed gateway model versions", () => {
       const config = parse(
         "llm://openrouter.ai/OpenAI/GPT-5-20260703-preview?temp=0.7&max=4096",

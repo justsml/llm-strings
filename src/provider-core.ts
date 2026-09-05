@@ -802,6 +802,10 @@ const GOOGLE_COMPATIBLE_DEF = {
     seed: "seed",
     responseMimeType: "responseMimeType",
     responseSchema: "responseSchema",
+    effort: "thinkingLevel",
+    thinking_level: "thinkingLevel",
+    thinking_budget: "thinkingBudget",
+    include_thoughts: "includeThoughts",
   },
   specs: {
     temperature: {
@@ -862,6 +866,20 @@ const GOOGLE_COMPATIBLE_DEF = {
       description: "Response MIME type",
     },
     responseSchema: { type: "string" as const, description: "Response schema" },
+    thinkingLevel: {
+      type: "string" as const,
+      values: ["minimal", "low", "medium", "high"],
+      description: "Gemini thinking level",
+    },
+    thinkingBudget: {
+      type: "number" as const,
+      min: 0,
+      description: "Gemini thinking token budget",
+    },
+    includeThoughts: {
+      type: "boolean" as const,
+      description: "Include Gemini thought summaries",
+    },
   },
 };
 

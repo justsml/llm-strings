@@ -23,8 +23,8 @@
 ![The parts of an LLM connection string](./assets/inline-url-diagram-dark.svg)
 
 ```css
-llm://openai/gpt-5.6-sol?effort=medium&maxTokens=2000
-llm://anthropic/claude-opus-4-8?cache=5m&effort=max
+llm://openai/gpt-6-astra?effort=medium&maxTokens=2000
+llm://anthropic/claude-opus-5?cache=5m&effort=max
 llm://bedrock/anthropic.claude-sonnet-5?cache=1h&max=4096
 llm://openrouter/anthropic/claude-sonnet-5?cache=true&max=2000
 ```
@@ -133,7 +133,7 @@ llm://[label[:apiKey]@]host/model[?params]
 | `label`  | No       | App name or environment label     | `worker`                   |
 | `apiKey` | No       | API key in the password position  | `sk-proj-abc123`           |
 | `host`   | Yes      | Provider host or short alias      | `api.openai.com`, `openai` |
-| `model`  | Yes      | Model name, route, or provider ID | `gpt-5.6-sol`              |
+| `model`  | Yes      | Model name, route, or provider ID | `gpt-6-astra`              |
 | `params` | No       | Query-string generation settings  | `effort=medium&max=2000`   |
 
 Connection strings can include secrets, so treat values containing `apiKey` like
@@ -211,13 +211,13 @@ including options such as `order`, `sort=ttft`, and `caching=auto`.
 
 ```bash
 # OpenAI
-LLM_URL="llm://openai/gpt-5.6-sol?max=2000&effort=medium"
+LLM_URL="llm://openai/gpt-6-astra?max=2000&effort=medium"
 
 # Anthropic
 LLM_URL="llm://anthropic/claude-sonnet-5?cache=5m&max=2000"
 
 # Google
-LLM_URL="llm://google/gemini-3.5-flash?cache=5m&max=2000"
+LLM_URL="llm://google/gemini-3.8-flash?cache=5m&max=2000"
 
 # Bedrock
 LLM_URL="llm://bedrock/us.anthropic.claude-sonnet-5?cache=1h&max=2000"
@@ -228,9 +228,9 @@ import { parse } from "llm-strings";
 import { normalize } from "llm-strings/normalize";
 
 for (const value of [
-  "llm://openai/gpt-5.6-sol?max=2000&effort=medium",
+  "llm://openai/gpt-6-astra?max=2000&effort=medium",
   "llm://anthropic/claude-sonnet-5?cache=5m&max=2000",
-  "llm://google/gemini-3.5-flash?cache=5m&max=2000",
+  "llm://google/gemini-3.8-flash?cache=5m&max=2000",
 ]) {
   const { config, provider } = normalize(parse(value));
   console.log(provider, config.params);
@@ -366,8 +366,8 @@ are deliberately split into opt-in paths:
 import { parse } from "llm-strings";
 import { safeParse } from "llm-strings/safe";
 
-const raw = parse("llm://openai/gpt-5.6-sol?effort=high");
-const checked = safeParse("llm://openai/gpt-5.6-sol?effort=high");
+const raw = parse("llm://openai/gpt-6-astra?effort=high");
+const checked = safeParse("llm://openai/gpt-6-astra?effort=high");
 
 if (checked.success) {
   checked.config; // provider-normalized settings

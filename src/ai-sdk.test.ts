@@ -6,6 +6,20 @@ function withParams(base: string, params: Record<string, string>): string {
 }
 
 describe("createAiSdkProviderOptions", () => {
+  it("maps Gemini 3.8 thinking effort into thinkingConfig", async () => {
+    const { createAiSdkProviderOptions } = await import("./ai-sdk.js");
+
+    expect(
+      createAiSdkProviderOptions(
+        "llm://google/gemini-3.8-flash?effort=high&include_thoughts=true",
+      ).providerOptions,
+    ).toEqual({
+      google: {
+        thinkingConfig: { thinkingLevel: "high", includeThoughts: true },
+      },
+    });
+  });
+
   it("loads from the AI SDK adapter submodule with dynamic import", async () => {
     const { createAiSdkProviderOptions } = await import("./ai-sdk.js");
 

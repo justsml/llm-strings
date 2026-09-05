@@ -5,6 +5,7 @@ import {
   PROVIDER_PARAMS,
   bedrockSupportsCaching,
   detectBedrockModelFamily,
+  modelMatchesFamily,
   type ParamSpec,
   type Provider,
 } from "./provider-core.js";
@@ -118,6 +119,36 @@ export function validate(
       subProvider && !subProviderSpecResult?.spec
         ? PARAM_SPECS[provider]?.[key]
         : undefined;
+
+    if (
+      effectiveProvider === "openai" &&
+      modelMatchesFamily(config.model, "gpt-6-astra") &&
+      key === "reasoning_effort" &&
+      !["low", "medium", "high", "xhigh", "max"].includes(value)
+    ) {
+      issues.push({
+        param: key,
+        value,
+        message: `"${key}" must be one of [low, medium, high, xhigh, max] for GPT-6 Astra, got "${value}".`,
+        severity: "error",
+      });
+      continue;
+    }
+
+    if (
+      effectiveProvider === "google" &&
+      modelMatchesFamily(config.model, "gemini-3.8-flash") &&
+      (key === "thinkingLevel" || key === "reasoning_effort") &&
+      value === "minimal"
+    ) {
+      issues.push({
+        param: key,
+        value,
+        message: `"${key}" does not support "minimal" for Gemini 3.8 Flash; use low, medium, or high.`,
+        severity: "error",
+      });
+      continue;
+    }
 
     // Bedrock model-family-specific checks
     if (provider === "bedrock") {
